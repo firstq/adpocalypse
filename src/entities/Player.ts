@@ -150,9 +150,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Swing arc tracks player
     this.swingGraphic.setPosition(this.x, this.y);
 
-    // Blink when invincible
-    const visible = !this.invincible || (Math.floor(this.scene.time.now / 80) % 2 === 0);
-    const alpha = visible ? 1 : 0.25;
+    // Faster, fully-invisible blink when invincible
+    const visible = !this.invincible || (Math.floor(this.scene.time.now / 50) % 2 === 0);
+    const alpha = visible ? 1 : 0;
     this.bodyGraphic.setAlpha(alpha);
     this.swordGraphic.setAlpha(alpha);
   }
@@ -204,6 +204,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.hp = Math.max(0, this.hp - amount);
     this.invincible = true;
     this.gameScene.audio.playSFX('damage');
+    this.gameScene.cameras.main.shake(200, 0.01);
+    this.gameScene.triggerDamageFlash();
     this.scene.time.delayedCall(PLAYER_INVINCIBILITY_MS, () => {
       this.invincible = false;
     });

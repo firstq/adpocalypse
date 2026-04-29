@@ -31,6 +31,7 @@ export class GameScene extends Phaser.Scene {
   private gameOver = false;
   private levelComplete = false;
   private hitstopActive = false;
+  private damageOverlay!: Phaser.GameObjects.Rectangle;
 
   // Ground platform boundaries
   readonly groundY = GAME_HEIGHT - 60;
@@ -50,6 +51,8 @@ export class GameScene extends Phaser.Scene {
     this.inputManager = new InputManager(this);
 
     this.buildLevel();
+
+    this.damageOverlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xe74c3c, 0).setDepth(99);
 
     this.enemies = this.add.group();
     this.coins = this.add.group();
@@ -174,6 +177,17 @@ export class GameScene extends Phaser.Scene {
         enemy.applyHitKnockback(this.player.x, this.player.y, 30);
         this.spawnHitParticles(enemy.x, enemy.y);
       }
+    });
+  }
+
+  triggerDamageFlash(): void {
+    this.tweens.killTweensOf(this.damageOverlay);
+    this.damageOverlay.setAlpha(0.3);
+    this.tweens.add({
+      targets: this.damageOverlay,
+      alpha: 0,
+      duration: 200,
+      ease: 'Linear',
     });
   }
 
