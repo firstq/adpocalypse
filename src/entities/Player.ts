@@ -7,7 +7,7 @@ import {
 import { InputManager } from '../systems/InputManager';
 import { GameScene } from '../scenes/GameScene';
 
-const SWORD_IDLE_ANGLE = -20;
+const SWORD_IDLE_ANGLE = 20; // magnitude; sign depends on facing direction
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   hp: number = PLAYER_HP;
@@ -22,6 +22,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private bodyGraphic!: Phaser.GameObjects.Graphics;
   private swordGraphic!: Phaser.GameObjects.Graphics;
   private gameScene: GameScene;
+  private currentVx = 0;
+  private currentVy = 0;
+  private attackTweening = false;
+  private cooldownGraphic!: Phaser.GameObjects.Graphics;
+  private attackCooldownStart = 0;
 
   constructor(scene: GameScene, x: number, y: number) {
     super(scene, x, y, '');
@@ -40,7 +45,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.swordGraphic = scene.add.graphics();
     this.swordGraphic.setDepth(5);
-    this.swordGraphic.setAngle(SWORD_IDLE_ANGLE);
+    this.swordGraphic.setAngle(SWORD_IDLE_ANGLE); // facing right initially
+
+    this.cooldownGraphic = scene.add.graphics();
+    this.cooldownGraphic.setDepth(4);
 
     this.swingGraphic = scene.add.graphics();
     this.swingGraphic.setDepth(6);
@@ -93,11 +101,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const start = -Math.PI * 0.55;
     const end   =  Math.PI * 0.55;
 
-    g.fillStyle(0xffffff, 0.18);
+    g.fillStyle(0xffffff, 0.3);
     g.slice(0, 0, 90, start, end, false);
     g.fillPath();
 
-    g.lineStyle(2, 0xffffff, 0.5);
+    g.lineStyle(4, 0xffffff, 0.9);
     g.beginPath();
     g.arc(0, 0, 90, start, end, false);
     g.strokePath();
@@ -105,22 +113,26 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   update(input: InputManager): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
-    let vx = 0;
+    const delta = this.scene.game.loop.delta;
+    const lerpT = Math.min(1, delta / 50);
 
+    let targetVx = 0;
     if (input.left) {
-      vx = -PLAYER_SPEED;
+      targetVx = -PLAYER_SPEED;
       this.facingRight = false;
     } else if (input.right) {
-      vx = PLAYER_SPEED;
+      targetVx = PLAYER_SPEED;
       this.facingRight = true;
     }
 
-    // Vertical movement + ground clamp
-    let vy = 0;
-    if (input.up) vy = -PLAYER_SPEED;
-    else if (input.down) vy = PLAYER_SPEED;
+    let targetVy = 0;
+    if (input.up) targetVy = -PLAYER_SPEED;
+    else if (input.down) targetVy = PLAYER_SPEED;
 
-    body.setVelocity(vx, vy);
+    this.currentVx = Phaser.Math.Linear(this.currentVx, targetVx, lerpT);
+    this.currentVy = Phaser.Math.Linear(this.currentVy, targetVy, lerpT);
+
+    body.setVelocity(this.currentVx, this.currentVy);
 
     if (this.y > this.gameScene.groundTop) {
       this.y = this.gameScene.groundTop;
@@ -137,15 +149,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.performAttack();
     }
 
-    // Body graphic
+    // Body graphic — lean ±5° in movement direction
+    const leanAngle = (this.currentVx / PLAYER_SPEED) * 5;
     this.bodyGraphic.setPosition(this.x, this.y);
+    this.bodyGraphic.setAngle(leanAngle);
     this.drawBody();
 
-    // Sword graphic — positioned at hand, mirrored when facing left
-    const handX = this.facingRight ? 16 : -16;
+    // Sword graphic — angle controls direction, no scale mirroring needed
+    const handX = this.facingRight ? -16 : 16;
     this.swordGraphic.setPosition(this.x + handX, this.y + 2);
-    this.swordGraphic.setScale(this.facingRight ? 1 : -1, 1);
+    if (!this.attackTweening) {
+      this.swordGraphic.setAngle(this.facingRight ? -SWORD_IDLE_ANGLE : SWORD_IDLE_ANGLE);
+    }
     this.drawSword();
+    this.drawCooldownBar();
 
     // Swing arc tracks player
     this.swingGraphic.setPosition(this.x, this.y);
@@ -167,21 +184,39 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       (e as unknown as { hitThisSwing: boolean }).hitThisSwing = false;
     });
 
-    // Raise sword to wind-up position, then slash forward
-    this.swordGraphic.setAngle(-105);
+    // Angles depend on facing direction
+    const startAngle = this.facingRight ? -105 : 105;
+    const endAngle   = this.facingRight ?   35 : -35;
+    const idleAngle  = this.facingRight ? -SWORD_IDLE_ANGLE : SWORD_IDLE_ANGLE;
+
+    this.attackTweening = true;
+    this.attackCooldownStart = this.scene.time.now;
+
+    // Scale punch on body
+    this.scene.tweens.killTweensOf(this.bodyGraphic);
+    this.scene.tweens.add({
+      targets: this.bodyGraphic,
+      scaleX: 1.1,
+      scaleY: 1.1,
+      duration: 75,
+      yoyo: true,
+      ease: 'Sine.easeOut',
+    });
+
     this.scene.tweens.killTweensOf(this.swordGraphic);
+    this.swordGraphic.setAngle(startAngle);
     this.scene.tweens.add({
       targets: this.swordGraphic,
-      angle: 35,
+      angle: endAngle,
       duration: PLAYER_ATTACK_DURATION_MS,
       ease: 'Power3.easeOut',
       onComplete: () => {
-        // Return to idle
         this.scene.tweens.add({
           targets: this.swordGraphic,
-          angle: SWORD_IDLE_ANGLE,
+          angle: idleAngle,
           duration: 180,
           ease: 'Sine.easeOut',
+          onComplete: () => { this.attackTweening = false; },
         });
       },
     });
@@ -197,6 +232,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(PLAYER_ATTACK_DURATION_MS + 100, () => {
       this.attackCooldown = false;
     });
+  }
+
+  private drawCooldownBar(): void {
+    const g = this.cooldownGraphic;
+    g.clear();
+    if (!this.attackCooldown) return;
+
+    const elapsed = this.scene.time.now - this.attackCooldownStart;
+    const totalMs = PLAYER_ATTACK_DURATION_MS + 100;
+    const progress = Math.min(1, elapsed / totalMs);
+    const maxW = 28;
+    const bx = this.x - maxW / 2;
+    const by = this.y + 38;
+
+    g.fillStyle(0x000000, 0.5);
+    g.fillRect(bx, by, maxW, 3);
+    g.fillStyle(0x4ecdc4, 1);
+    g.fillRect(bx, by, maxW * progress, 3);
   }
 
   takeDamage(amount: number): void {
@@ -215,6 +268,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.bodyGraphic?.destroy();
     this.swordGraphic?.destroy();
     this.swingGraphic?.destroy();
+    this.cooldownGraphic?.destroy();
     super.destroy(fromScene);
   }
 }

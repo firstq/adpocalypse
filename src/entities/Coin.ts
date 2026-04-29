@@ -29,15 +29,35 @@ export class Coin extends Phaser.Physics.Arcade.Sprite {
 
     this.graphic = scene.add.container(x, y, [circle, inner, text]);
     this.graphic.setDepth(3);
+    this.graphic.setScale(0);
 
+    // Pop: 0 → 1.2 → 1.0, then idle pulse
     scene.tweens.add({
       targets: this.graphic,
       scaleX: 1.2,
       scaleY: 1.2,
-      duration: 400,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
+      duration: 120,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        scene.tweens.add({
+          targets: this.graphic,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 80,
+          ease: 'Sine.easeOut',
+          onComplete: () => {
+            scene.tweens.add({
+              targets: this.graphic,
+              scaleX: 1.2,
+              scaleY: 1.2,
+              duration: 400,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut',
+            });
+          },
+        });
+      },
     });
   }
 

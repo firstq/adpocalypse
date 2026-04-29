@@ -158,20 +158,24 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
       },
     });
 
-    // Simple particle burst using rectangles
-    for (let i = 0; i < 6; i++) {
+    this.gameScene.triggerDeathSlowmo();
+
+    const count = Phaser.Math.Between(8, 12);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Phaser.Math.FloatBetween(-0.2, 0.2);
+      const dist = Phaser.Math.Between(40, 90);
+      const size = Phaser.Math.Between(6, 12);
       const particle = this.scene.add.rectangle(
-        this.x, this.y, 8, 8, 0xffd700,
+        this.x, this.y, size, size, 0xffd700,
       ).setDepth(20);
-      const angle = (i / 6) * Math.PI * 2;
       this.scene.tweens.add({
         targets: particle,
-        x: this.x + Math.cos(angle) * 60,
-        y: this.y + Math.sin(angle) * 60,
+        x: this.x + Math.cos(angle) * dist,
+        y: this.y + Math.sin(angle) * dist,
         alpha: 0,
         scaleX: 0,
         scaleY: 0,
-        duration: 400,
+        duration: Phaser.Math.Between(300, 500),
         ease: 'Power2',
         onComplete: () => particle.destroy(),
       });

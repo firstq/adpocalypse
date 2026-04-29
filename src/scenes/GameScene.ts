@@ -31,6 +31,7 @@ export class GameScene extends Phaser.Scene {
   private gameOver = false;
   private levelComplete = false;
   private hitstopActive = false;
+  private slowmoActive = false;
   private damageOverlay!: Phaser.GameObjects.Rectangle;
 
   // Ground platform boundaries
@@ -177,6 +178,16 @@ export class GameScene extends Phaser.Scene {
         enemy.applyHitKnockback(this.player.x, this.player.y, 30);
         this.spawnHitParticles(enemy.x, enemy.y);
       }
+    });
+  }
+
+  triggerDeathSlowmo(): void {
+    if (this.slowmoActive) return;
+    this.slowmoActive = true;
+    this.physics.world.timeScale = 0.5;
+    this.time.delayedCall(100, () => {
+      this.physics.world.timeScale = 1;
+      this.slowmoActive = false;
     });
   }
 
