@@ -370,7 +370,10 @@ export class GameScene extends Phaser.Scene {
 
   private triggerGameOver(): void {
     this.gameOver = true;
+    this.physics.world.pause();
     this.audio.playSFX('gameover');
+
+    this.scene.stop('UIScene');
 
     const reached = this.currentWave;
     const prev = parseInt(localStorage.getItem('bestWave') || '0');
@@ -379,50 +382,93 @@ export class GameScene extends Phaser.Scene {
     const isNewRecord = reached > prev;
 
     const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0).setDepth(100);
-    this.tweens.add({ targets: overlay, alpha: 0.75, duration: 500 });
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0.7,
+      duration: 400,
+      onComplete: () => this.buildGameOverPanel(reached, best, isNewRecord),
+    });
+  }
 
-    this.time.delayedCall(350, () => {
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 120, 'GAME OVER', {
-        fontSize: '80px',
-        fontFamily: 'Arial Black, Arial',
-        color: '#e74c3c',
-        stroke: '#000000',
-        strokeThickness: 6,
-      }).setOrigin(0.5).setDepth(101);
+  private buildGameOverPanel(reached: number, best: number, isNewRecord: boolean): void {
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2;
+    const panel = this.add.container(cx, cy).setDepth(110);
 
-      const waveLabel = isNewRecord
-        ? `Wave ${reached}  🏆 NEW RECORD!`
-        : `Wave reached: ${reached}  (Best: ${best})`;
+    const glow = this.add.rectangle(0, 0, 616, 436, 0xe74c3c, 0.12);
+    const bg = this.add.rectangle(0, 0, 600, 420, 0x080808, 0.95);
+    bg.setStrokeStyle(2, 0xe74c3c);
 
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, waveLabel, {
-        fontSize: '26px',
-        fontFamily: 'Arial Black, Arial',
-        color: isNewRecord ? '#ffd700' : '#ecf0f1',
-      }).setOrigin(0.5).setDepth(101);
+    const title = this.add.text(0, -155, 'GAME OVER', {
+      fontSize: '72px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#e74c3c',
+      stroke: '#000000',
+      strokeThickness: 6,
+    }).setOrigin(0.5);
 
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 25, `Coins collected: ${this.gameState.coins}`, {
-        fontSize: '22px',
-        fontFamily: 'Arial',
-        color: '#ffd700',
-      }).setOrigin(0.5).setDepth(101);
+    const waveText = this.add.text(0, -82, `Wave: ${reached}`, {
+      fontSize: '28px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#ecf0f1',
+    }).setOrigin(0.5);
 
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 65, `Upgrades taken: ${this.player.upgradeState.activeUpgrades.length}`, {
-        fontSize: '18px',
-        fontFamily: 'Arial',
-        color: '#aaaaaa',
-      }).setOrigin(0.5).setDepth(101);
+    const recordText = isNewRecord
+      ? this.add.text(0, -50, '🏆 NEW RECORD!', {
+          fontSize: '22px',
+          fontFamily: 'Arial Black, Arial',
+          color: '#ffd700',
+        }).setOrigin(0.5)
+      : this.add.text(0, -50, `Best: ${best}`, {
+          fontSize: '18px',
+          fontFamily: 'Arial',
+          color: '#666666',
+        }).setOrigin(0.5);
 
-      const tryAgainBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 130, '[ TRY AGAIN ]', {
-        fontSize: '36px',
-        fontFamily: 'Arial Black, Arial',
-        color: '#4ecdc4',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
+    const coinsText = this.add.text(0, -5, `Coins collected: ${this.gameState.coins}`, {
+      fontSize: '22px',
+      fontFamily: 'Arial',
+      color: '#ffd700',
+    }).setOrigin(0.5);
 
-      tryAgainBtn.on('pointerover', () => tryAgainBtn.setColor('#ffffff'));
-      tryAgainBtn.on('pointerout', () => tryAgainBtn.setColor('#4ecdc4'));
-      tryAgainBtn.on('pointerdown', () => this.scene.start('GameScene'));
+    const upgradesText = this.add.text(0, 32, `Upgrades taken: ${this.player.upgradeState.activeUpgrades.length}`, {
+      fontSize: '18px',
+      fontFamily: 'Arial',
+      color: '#aaaaaa',
+    }).setOrigin(0.5);
+
+    const tryAgainBtn = this.add.text(0, 108, '[ TRY AGAIN ]', {
+      fontSize: '34px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#4ecdc4',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    tryAgainBtn.on('pointerover', () => tryAgainBtn.setColor('#ffffff'));
+    tryAgainBtn.on('pointerout', () => tryAgainBtn.setColor('#4ecdc4'));
+    tryAgainBtn.on('pointerdown', () => this.scene.start('GameScene'));
+
+    const menuBtn = this.add.text(0, 160, '[ MAIN MENU ]', {
+      fontSize: '26px',
+      fontFamily: 'Arial',
+      color: '#888888',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    menuBtn.on('pointerover', () => menuBtn.setColor('#ffffff'));
+    menuBtn.on('pointerout', () => menuBtn.setColor('#888888'));
+    menuBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+
+    panel.add([glow, bg, title, waveText, recordText, coinsText, upgradesText, tryAgainBtn, menuBtn]);
+
+    panel.setScale(0.85).setAlpha(0);
+    this.tweens.add({
+      targets: panel,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 300,
+      ease: 'Back.easeOut',
     });
   }
 }
