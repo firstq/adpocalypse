@@ -2,6 +2,12 @@ import Phaser from 'phaser';
 import { GameScene } from '../../scenes/GameScene';
 import { Coin } from '../Coin';
 
+export interface EnemyMultipliers {
+  hp?: number;
+  speed?: number;
+  damage?: number;
+}
+
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   hp: number;
   readonly maxHp: number;
@@ -29,13 +35,19 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     contactRadius: number,
     coinDrop: number,
     knockback = 0,
+    mult: EnemyMultipliers = {},
   ) {
     super(scene, x, y, '');
     this.gameScene = scene;
-    this.hp = hp;
-    this.maxHp = hp;
-    this.speed = speed;
-    this.contactDamage = contactDamage;
+
+    const hm = mult.hp ?? 1;
+    const sm = mult.speed ?? 1;
+    const dm = mult.damage ?? 1;
+
+    this.hp = Math.round(hp * hm);
+    this.maxHp = this.hp;
+    this.speed = speed * sm;
+    this.contactDamage = Math.round(contactDamage * dm);
     this.contactRadius = contactRadius;
     this.coinDrop = coinDrop;
     this.knockback = knockback;
@@ -80,7 +92,6 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.hpBarBg.setPosition(barX, barY);
     this.hpBarFill.setPosition(barX - bw * (1 - pct) / 2, barY);
     this.hpBarFill.setSize(bw * pct, 6);
-    // Color shifts red as HP drops
     const color = pct > 0.5 ? 0x2ecc71 : pct > 0.25 ? 0xf39c12 : 0xe74c3c;
     this.hpBarFill.setFillStyle(color);
   }
@@ -134,14 +145,12 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.dying = true;
     (this.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
 
-    // Drop coins
     for (let i = 0; i < this.coinDrop; i++) {
       const ox = Phaser.Math.Between(-20, 20);
       const oy = Phaser.Math.Between(-20, 20);
       new Coin(this.gameScene, this.x + ox, this.y + oy);
     }
 
-    // Death animation: blink + fade
     this.scene.tweens.add({
       targets: this.bodyContainer,
       alpha: 0,

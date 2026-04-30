@@ -1,12 +1,13 @@
+import Phaser from 'phaser';
 import { GameScene } from '../../scenes/GameScene';
-import { Enemy } from './Enemy';
+import { Enemy, EnemyMultipliers } from './Enemy';
 
 export class PopupClose extends Enemy {
   private static readonly W = 60;
   private static readonly H = 60;
 
-  constructor(scene: GameScene, x: number, y: number) {
-    super(scene, x, y, 20, 85, 12, 30, 1);
+  constructor(scene: GameScene, x: number, y: number, mult?: EnemyMultipliers) {
+    super(scene, x, y, 20, 85, 12, 30, 1, 0, mult);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(PopupClose.W, PopupClose.H);
   }

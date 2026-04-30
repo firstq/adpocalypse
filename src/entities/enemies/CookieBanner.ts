@@ -1,14 +1,13 @@
 import Phaser from 'phaser';
 import { GameScene } from '../../scenes/GameScene';
-import { Enemy } from './Enemy';
+import { Enemy, EnemyMultipliers } from './Enemy';
 
 export class CookieBanner extends Enemy {
   private static readonly W = 220;
   private static readonly H = 55;
 
-  constructor(scene: GameScene, x: number, y: number) {
-    // Moves horizontally along ground, pushes player
-    super(scene, x, y, 50, 60, 20, 110, 2, 350);
+  constructor(scene: GameScene, x: number, y: number, mult?: EnemyMultipliers) {
+    super(scene, x, y, 50, 60, 20, 110, 2, 350, mult);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(CookieBanner.W, CookieBanner.H);
   }
@@ -43,7 +42,6 @@ export class CookieBanner extends Enemy {
     const dx = player.x - this.x;
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocityX(dx > 0 ? this.speed : -this.speed);
-    // Pin to ground row, no vertical physics
     this.y = this.gameScene.groundTop - CookieBanner.H / 2;
     body.setVelocityY(0);
   }

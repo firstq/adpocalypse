@@ -12,8 +12,11 @@ export interface GameState {
   coins: number;
   wave: number;
   enemiesRemaining: number;
+  totalEnemiesInWave: number;
   hp: number;
   maxHp: number;
+  bestWave: number;
+  activeUpgrades: string[];
 }
 
 export class GameScene extends Phaser.Scene {
@@ -29,12 +32,11 @@ export class GameScene extends Phaser.Scene {
 
   private gameState!: GameState;
   private gameOver = false;
-  private levelComplete = false;
   private hitstopActive = false;
   private slowmoActive = false;
   private damageOverlay!: Phaser.GameObjects.Rectangle;
+  private currentWave = 1;
 
-  // Ground platform boundaries
   readonly groundY = GAME_HEIGHT - 60;
   readonly groundTop = GAME_HEIGHT - 100;
 
@@ -44,9 +46,20 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.gameOver = false;
-    this.levelComplete = false;
+    this.currentWave = 1;
 
-    this.gameState = { coins: 0, wave: 1, enemiesRemaining: 0, hp: 100, maxHp: 100 };
+    const bestWave = parseInt(localStorage.getItem('bestWave') || '0');
+
+    this.gameState = {
+      coins: 0,
+      wave: 1,
+      enemiesRemaining: 0,
+      totalEnemiesInWave: 1,
+      hp: 100,
+      maxHp: 100,
+      bestWave,
+      activeUpgrades: [],
+    };
 
     this.audio = new AudioManager();
     this.inputManager = new InputManager(this);
@@ -65,14 +78,12 @@ export class GameScene extends Phaser.Scene {
     this.waveManager = new WaveManager(this);
     this.waveManager.startWave(1);
 
-    // Overlap: player touches coin
     this.physics.add.overlap(
       this.player,
       this.coins,
       (_p, c) => this.collectCoin(c as Coin),
     );
 
-    // Overlap: enemy projectiles hit player
     this.physics.add.overlap(
       this.player,
       this.projectiles,
@@ -84,7 +95,26 @@ export class GameScene extends Phaser.Scene {
       },
     );
 
-    // Always (re)launch UIScene fresh when GameScene starts
+    // Regen timer
+    this.time.addEvent({
+      delay: 2000,
+      loop: true,
+      callback: () => {
+        if (!this.gameOver && this.player?.active && this.player.upgradeState.regenRate > 0) {
+          this.player.heal(this.player.upgradeState.regenRate);
+        }
+      },
+    });
+
+    // Resume event: fired when UpgradeScene stops and resumes this scene
+    this.events.on('resume', () => {
+      const nextWave = this.registry.get('upgradeNextWave') as number | undefined;
+      if (nextWave !== undefined) {
+        this.registry.remove('upgradeNextWave');
+        this.waveManager.startWave(nextWave);
+      }
+    });
+
     if (this.scene.isActive('UIScene')) {
       this.scene.stop('UIScene');
     }
@@ -93,19 +123,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   private buildLevel(): void {
-    // Sky background
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x0d0d2b, 0x0d0d2b, 0x1a1a3e, 0x1a1a3e, 1);
     bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Ground
     const ground = this.add.graphics();
     ground.fillStyle(0x16213e);
     ground.fillRect(0, this.groundY, GAME_WIDTH, GAME_HEIGHT - this.groundY);
     ground.fillStyle(0x0f3460);
     ground.fillRect(0, this.groundY, GAME_WIDTH, 4);
 
-    // Grid lines for depth
     const grid = this.add.graphics();
     grid.lineStyle(1, 0x0f3460, 0.3);
     for (let x = 0; x < GAME_WIDTH; x += 80) {
@@ -119,7 +146,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (this.gameOver || this.levelComplete) return;
+    if (this.gameOver) return;
 
     this.inputManager.update();
     this.player.update(this.inputManager);
@@ -128,11 +155,28 @@ export class GameScene extends Phaser.Scene {
     this.coins.getChildren().forEach(c => (c as Coin).update());
     this.projectiles.getChildren().forEach(p => (p as Projectile).update());
 
+    // Magnet: pull coins toward player
+    if (this.player.upgradeState.hasMagnet) {
+      this.coins.getChildren().forEach(c => {
+        const coin = c as Coin;
+        if (!coin.active) return;
+        const dx = this.player.x - coin.x;
+        const dy = this.player.y - coin.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 350 && dist > 5) {
+          const body = coin.body as Phaser.Physics.Arcade.Body;
+          body.setVelocity((dx / dist) * 300, (dy / dist) * 300);
+        }
+      });
+    }
+
     this.checkPlayerEnemyCollisions();
     this.checkAttackEnemyCollisions();
     this.checkProjectileWalls();
 
     this.gameState.hp = this.player.hp;
+    this.gameState.maxHp = this.player.maxHp;
+    this.gameState.activeUpgrades = this.player.upgradeState.activeUpgrades;
     this.updateUI();
 
     if (this.player.hp <= 0 && !this.gameOver) {
@@ -146,7 +190,12 @@ export class GameScene extends Phaser.Scene {
       if (!enemy.active) return;
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
       if (dist < enemy.contactRadius + 20) {
+        const wasInvincible = this.player.isCurrentlyInvincible;
         this.player.takeDamage(enemy.contactDamage);
+        // Thorns: reflect damage if we weren't invincible
+        if (!wasInvincible && this.player.upgradeState.thorns > 0) {
+          enemy.takeDamage(this.player.upgradeState.thorns);
+        }
         if (enemy.knockback > 0) {
           const dx = this.player.x - enemy.x;
           const dy = this.player.y - enemy.y;
@@ -164,20 +213,44 @@ export class GameScene extends Phaser.Scene {
       const enemy = e as Enemy;
       if (!enemy.active || enemy.hitThisSwing) return;
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
-      // Hit if sword arc (90px) reaches enemy edge: dist <= swordReach + enemyRadius
-      if (dist > 90 + enemy.contactRadius) return;
+      if (dist > this.player.getSwingRange() + enemy.contactRadius) return;
       const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, enemy.x, enemy.y);
       const facingAngle = this.player.facingRight ? 0 : Math.PI;
       const diff = Phaser.Math.Angle.Wrap(angle - facingAngle);
-      if (Math.abs(diff) < Math.PI / 2) {
-        enemy.takeDamage(this.player.meleeDamage);
+      if (Math.abs(diff) < this.player.getSwingAngle()) {
+        let damage = this.player.meleeDamage;
+        let isCrit = false;
+        if (this.player.upgradeState.critChance > 0 && Math.random() < this.player.upgradeState.critChance) {
+          damage = Math.round(damage * 2);
+          isCrit = true;
+        }
+        enemy.takeDamage(damage);
         enemy.hitThisSwing = true;
         this.audio.playSFX('attack');
         this.cameras.main.shake(80, 0.005);
         this.triggerHitstop();
         enemy.applyHitKnockback(this.player.x, this.player.y, 30);
         this.spawnHitParticles(enemy.x, enemy.y);
+        if (isCrit) this.showCritText(enemy.x, enemy.y);
       }
+    });
+  }
+
+  private showCritText(x: number, y: number): void {
+    const t = this.add.text(x, y - 30, 'CRIT!', {
+      fontSize: '24px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#ffff00',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(25);
+    this.tweens.add({
+      targets: t,
+      y: y - 80,
+      alpha: 0,
+      duration: 600,
+      ease: 'Power2',
+      onComplete: () => t.destroy(),
     });
   }
 
@@ -242,7 +315,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   collectCoin(coin: Coin): void {
-    this.gameState.coins += coin.value;
+    this.gameState.coins += Math.round(coin.value * this.player.upgradeState.coinMult);
     coin.destroy();
     this.audio.playSFX('coin');
     this.updateUI();
@@ -250,21 +323,26 @@ export class GameScene extends Phaser.Scene {
 
   onEnemyDied(): void {
     this.gameState.enemiesRemaining = Math.max(0, this.gameState.enemiesRemaining - 1);
+    if (this.player?.active && this.player.upgradeState.lifestealHp > 0) {
+      this.player.heal(this.player.upgradeState.lifestealHp);
+    }
     this.updateUI();
     this.waveManager.onEnemyKilled();
   }
 
-  onWaveComplete(waveNumber: number): void {
-    this.gameState.wave = waveNumber + 1;
-    if (waveNumber >= 3) {
-      this.triggerLevelComplete();
-    } else {
-      // Brief pause then next wave
-      this.time.delayedCall(2000, () => {
-        this.waveManager.startWave(waveNumber + 1);
-      });
-    }
+  onWaveComplete(waveNumber: number, upgradeCards: number): void {
+    if (this.gameOver) return;
+    const nextWave = waveNumber + 1;
+    this.gameState.wave = nextWave;
     this.updateUI();
+
+    this.time.delayedCall(800, () => {
+      if (this.gameOver) return;
+      this.registry.set('upgradeCards', upgradeCards);
+      this.registry.set('upgradeWave', nextWave);
+      this.scene.pause();
+      this.scene.launch('UpgradeScene');
+    });
   }
 
   setEnemiesRemaining(count: number): void {
@@ -272,7 +350,13 @@ export class GameScene extends Phaser.Scene {
     this.updateUI();
   }
 
+  setEnemiesTotal(total: number): void {
+    this.gameState.totalEnemiesInWave = total;
+    this.updateUI();
+  }
+
   setWave(wave: number): void {
+    this.currentWave = wave;
     this.gameState.wave = wave;
     this.updateUI();
   }
@@ -288,12 +372,17 @@ export class GameScene extends Phaser.Scene {
     this.gameOver = true;
     this.audio.playSFX('gameover');
 
-    // Dim overlay
-    const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0).setDepth(100);
-    this.tweens.add({ targets: overlay, alpha: 0.7, duration: 500 });
+    const reached = this.currentWave;
+    const prev = parseInt(localStorage.getItem('bestWave') || '0');
+    const best = Math.max(reached, prev);
+    localStorage.setItem('bestWave', String(best));
+    const isNewRecord = reached > prev;
 
-    this.time.delayedCall(300, () => {
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 80, 'GAME OVER', {
+    const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0).setDepth(100);
+    this.tweens.add({ targets: overlay, alpha: 0.75, duration: 500 });
+
+    this.time.delayedCall(350, () => {
+      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 120, 'GAME OVER', {
         fontSize: '80px',
         fontFamily: 'Arial Black, Arial',
         color: '#e74c3c',
@@ -301,13 +390,29 @@ export class GameScene extends Phaser.Scene {
         strokeThickness: 6,
       }).setOrigin(0.5).setDepth(101);
 
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, `Coins collected: ${this.gameState.coins}`, {
-        fontSize: '28px',
+      const waveLabel = isNewRecord
+        ? `Wave ${reached}  🏆 NEW RECORD!`
+        : `Wave reached: ${reached}  (Best: ${best})`;
+
+      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, waveLabel, {
+        fontSize: '26px',
+        fontFamily: 'Arial Black, Arial',
+        color: isNewRecord ? '#ffd700' : '#ecf0f1',
+      }).setOrigin(0.5).setDepth(101);
+
+      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 25, `Coins collected: ${this.gameState.coins}`, {
+        fontSize: '22px',
         fontFamily: 'Arial',
         color: '#ffd700',
       }).setOrigin(0.5).setDepth(101);
 
-      const tryAgainBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 100, '[ TRY AGAIN ]', {
+      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 65, `Upgrades taken: ${this.player.upgradeState.activeUpgrades.length}`, {
+        fontSize: '18px',
+        fontFamily: 'Arial',
+        color: '#aaaaaa',
+      }).setOrigin(0.5).setDepth(101);
+
+      const tryAgainBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 130, '[ TRY AGAIN ]', {
         fontSize: '36px',
         fontFamily: 'Arial Black, Arial',
         color: '#4ecdc4',
@@ -317,55 +422,7 @@ export class GameScene extends Phaser.Scene {
 
       tryAgainBtn.on('pointerover', () => tryAgainBtn.setColor('#ffffff'));
       tryAgainBtn.on('pointerout', () => tryAgainBtn.setColor('#4ecdc4'));
-      tryAgainBtn.on('pointerdown', () => this.restartGame());
+      tryAgainBtn.on('pointerdown', () => this.scene.start('GameScene'));
     });
-  }
-
-  private triggerLevelComplete(): void {
-    this.levelComplete = true;
-    this.audio.playSFX('win');
-
-    const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0).setDepth(100);
-    this.tweens.add({ targets: overlay, alpha: 0.7, duration: 500 });
-
-    this.time.delayedCall(300, () => {
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 120, 'LEVEL COMPLETE!', {
-        fontSize: '72px',
-        fontFamily: 'Arial Black, Arial',
-        color: '#f1c40f',
-        stroke: '#000000',
-        strokeThickness: 6,
-      }).setOrigin(0.5).setDepth(101);
-
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30, '🏆 All waves cleared!', {
-        fontSize: '32px',
-        fontFamily: 'Arial',
-        color: '#ecf0f1',
-      }).setOrigin(0.5).setDepth(101);
-
-      this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30, `Coins: ${this.gameState.coins}`, {
-        fontSize: '28px',
-        fontFamily: 'Arial',
-        color: '#ffd700',
-      }).setOrigin(0.5).setDepth(101);
-
-      const nextBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 110, '[ NEXT LEVEL ]', {
-        fontSize: '36px',
-        fontFamily: 'Arial Black, Arial',
-        color: '#4ecdc4',
-        stroke: '#000000',
-        strokeThickness: 4,
-      }).setOrigin(0.5).setDepth(101).setInteractive({ useHandCursor: true });
-
-      nextBtn.on('pointerover', () => nextBtn.setColor('#ffffff'));
-      nextBtn.on('pointerout', () => nextBtn.setColor('#4ecdc4'));
-      nextBtn.on('pointerdown', () => this.restartGame());
-    });
-  }
-
-  private restartGame(): void {
-    // scene.start() stops the current scene and starts it fresh;
-    // GameScene.create() will stop + relaunch UIScene itself.
-    this.scene.start('GameScene');
   }
 }

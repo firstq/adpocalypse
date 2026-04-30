@@ -5,7 +5,7 @@ export const PLAYER_HP = 100;
 export const PLAYER_SPEED = 200;
 export const PLAYER_MELEE_DAMAGE = 20;
 export const PLAYER_MELEE_RANGE = 80;
-export const PLAYER_MELEE_ANGLE = 90; // degrees
+export const PLAYER_MELEE_ANGLE = 90;
 export const PLAYER_INVINCIBILITY_MS = 700;
 export const PLAYER_ATTACK_DURATION_MS = 200;
 
@@ -18,6 +18,9 @@ export const COLORS = {
   popupClose: 0xe74c3c,
   cookieBanner: 0xf39c12,
   premiumPopup: 0xf1c40f,
+  spamEmail: 0xf0f0f0,
+  autoplayVideo: 0x2980b9,
+  bossPopup: 0xff4500,
   coin: 0xffd700,
   projectile: 0x9b59b6,
   hpBar: 0x2ecc71,
@@ -25,8 +28,24 @@ export const COLORS = {
   ui: 0xecf0f1,
 };
 
-export const WAVE_DEFINITIONS = [
-  { popupClose: 8, cookieBanner: 0, premiumPopup: 0 },
-  { popupClose: 12, cookieBanner: 3, premiumPopup: 0 },
-  { popupClose: 14, cookieBanner: 4, premiumPopup: 2 },
+export interface UpgradeDef {
+  id: string;
+  icon: string;
+  label: string;
+  description: string;
+}
+
+export const UPGRADE_POOL: UpgradeDef[] = [
+  { id: 'hp_boost',     icon: '❤️',  label: '+25 Max HP',      description: 'Increase maximum HP by 25 and heal immediately.' },
+  { id: 'hp_restore',   icon: '💊',  label: 'Full Heal',       description: 'Restore all HP to current maximum.' },
+  { id: 'damage_boost', icon: '⚔️',  label: '+25% Damage',     description: 'All attacks deal 25% more damage.' },
+  { id: 'speed_boost',  icon: '👟',  label: '+20% Speed',      description: 'Move 20% faster.' },
+  { id: 'attack_speed', icon: '⚡',  label: 'Faster Attacks',  description: 'Attack cooldown reduced by 25%.' },
+  { id: 'lifesteal',    icon: '🩸',  label: 'Lifesteal',       description: 'Heal 5 HP each time you kill an enemy.' },
+  { id: 'crit',         icon: '💥',  label: 'Critical Hits',   description: '25% chance to deal double damage.' },
+  { id: 'magnet',       icon: '🧲',  label: 'Coin Magnet',     description: 'Coins fly toward you automatically.' },
+  { id: 'thorns',       icon: '🌵',  label: 'Thorns',          description: 'Reflect 5 damage to enemies that hit you.' },
+  { id: 'regen',        icon: '🌿',  label: 'Regeneration',    description: 'Recover 1 HP every 2 seconds.' },
+  { id: 'double_coins', icon: '💰',  label: 'Double Coins',    description: 'All coin pickups are worth double.' },
+  { id: 'wide_swing',   icon: '🌀',  label: 'Wide Swing',      description: 'Attack arc 30% wider and longer.' },
 ];

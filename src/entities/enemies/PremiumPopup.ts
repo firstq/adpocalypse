@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GameScene } from '../../scenes/GameScene';
-import { Enemy } from './Enemy';
+import { Enemy, EnemyMultipliers } from './Enemy';
 import { Projectile } from '../Projectile';
 
 export class PremiumPopup extends Enemy {
@@ -9,8 +9,8 @@ export class PremiumPopup extends Enemy {
   private shootTimer = 0;
   private readonly SHOOT_INTERVAL = 1200;
 
-  constructor(scene: GameScene, x: number, y: number) {
-    super(scene, x, y, 120, 40, 25, 70, 3);
+  constructor(scene: GameScene, x: number, y: number, mult?: EnemyMultipliers) {
+    super(scene, x, y, 120, 40, 25, 70, 3, 0, mult);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(PremiumPopup.W, PremiumPopup.H);
     this.shootTimer = scene.time.now + 1000;
@@ -50,7 +50,6 @@ export class PremiumPopup extends Enemy {
 
     this.bodyContainer.add([glow, rect, star, title, sub, btn]);
 
-    // Pulsing animation
     this.scene.tweens.add({
       targets: this.bodyContainer,
       scaleX: 1.05,
