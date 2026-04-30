@@ -219,4 +219,5 @@ export class BossPopup extends Enemy {
 
   protected getBodyWidth(): number { return BossPopup.W; }
   protected getBodyHeight(): number { return BossPopup.H; }
+  protected getGearDrop(): number { return Phaser.Math.Between(3, 5); }
 }

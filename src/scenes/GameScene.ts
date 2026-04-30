@@ -3,10 +3,12 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/enemies/Enemy';
 import { Coin } from '../entities/Coin';
+import { Gear } from '../entities/Gear';
 import { WaveManager } from '../systems/WaveManager';
 import { AudioManager } from '../systems/AudioManager';
 import { InputManager } from '../systems/InputManager';
 import { Projectile } from '../entities/Projectile';
+import { MetaProgress } from '../systems/MetaProgress';
 
 export interface GameState {
   coins: number;
@@ -17,12 +19,14 @@ export interface GameState {
   maxHp: number;
   bestWave: number;
   activeUpgrades: string[];
+  gearsThisRun: number;
 }
 
 export class GameScene extends Phaser.Scene {
   player!: Player;
   enemies!: Phaser.GameObjects.Group;
   coins!: Phaser.GameObjects.Group;
+  gears!: Phaser.GameObjects.Group;
   projectiles!: Phaser.GameObjects.Group;
   playerProjectiles!: Phaser.GameObjects.Group;
 
@@ -36,6 +40,7 @@ export class GameScene extends Phaser.Scene {
   private slowmoActive = false;
   private damageOverlay!: Phaser.GameObjects.Rectangle;
   private currentWave = 1;
+  private gearsThisRun = 0;
 
   readonly groundY = GAME_HEIGHT - 60;
   readonly groundTop = GAME_HEIGHT - 100;
@@ -47,6 +52,7 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.gameOver = false;
     this.currentWave = 1;
+    this.gearsThisRun = 0;
 
     const bestWave = parseInt(localStorage.getItem('bestWave') || '0');
 
@@ -59,6 +65,7 @@ export class GameScene extends Phaser.Scene {
       maxHp: 100,
       bestWave,
       activeUpgrades: [],
+      gearsThisRun: 0,
     };
 
     this.audio = new AudioManager();
@@ -70,10 +77,15 @@ export class GameScene extends Phaser.Scene {
 
     this.enemies = this.add.group();
     this.coins = this.add.group();
+    this.gears = this.add.group();
     this.projectiles = this.add.group();
     this.playerProjectiles = this.add.group();
 
     this.player = new Player(this, GAME_WIDTH / 2, this.groundTop - 40);
+    this.applyMetaUpgrades();
+
+    this.gameState.hp = this.player.hp;
+    this.gameState.maxHp = this.player.maxHp;
 
     this.waveManager = new WaveManager(this);
     this.waveManager.startWave(1);
@@ -82,6 +94,12 @@ export class GameScene extends Phaser.Scene {
       this.player,
       this.coins,
       (_p, c) => this.collectCoin(c as Coin),
+    );
+
+    this.physics.add.overlap(
+      this.player,
+      this.gears,
+      (_p, g) => this.collectGear(g as Gear),
     );
 
     this.physics.add.overlap(
@@ -95,7 +113,6 @@ export class GameScene extends Phaser.Scene {
       },
     );
 
-    // Regen timer
     this.time.addEvent({
       delay: 2000,
       loop: true,
@@ -106,7 +123,6 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Resume event: fired when UpgradeScene stops and resumes this scene
     this.events.on('resume', () => {
       const nextWave = this.registry.get('upgradeNextWave') as number | undefined;
       if (nextWave !== undefined) {
@@ -120,6 +136,52 @@ export class GameScene extends Phaser.Scene {
     }
     this.scene.launch('UIScene');
     this.updateUI();
+  }
+
+  private applyMetaUpgrades(): void {
+    const lvl = (id: string) => MetaProgress.getUpgradeLevel(id);
+
+    // Damage
+    const dmgLvl = lvl('damage');
+    if (dmgLvl > 0) {
+      this.player.meleeDamage = Math.round(this.player.meleeDamage * (1 + 0.03 * dmgLvl));
+    }
+
+    // Max HP + starting HP
+    const hpLvl = lvl('max_hp');
+    const startHpLvl = lvl('start_hp');
+    this.player.maxHp += 5 * hpLvl + 10 * startHpLvl;
+    this.player.hp = this.player.maxHp;
+
+    // Speed
+    this.player.upgradeState.speedMult += 0.02 * lvl('speed');
+
+    // Attack speed (reduces cooldown)
+    const atkLvl = lvl('attack_speed');
+    if (atkLvl > 0) {
+      this.player.upgradeState.cooldownMult = Math.max(0.25, 1 - 0.02 * atkLvl);
+    }
+
+    // Coin bonus
+    this.player.upgradeState.coinMult += 0.05 * lvl('coin_bonus');
+
+    // Crit chance
+    const critLvl = lvl('crit_chance');
+    if (critLvl > 0) {
+      this.player.upgradeState.critChance = Math.min(0.75, this.player.upgradeState.critChance + 0.01 * critLvl);
+    }
+
+    // Magnet radius
+    const magnetLvl = lvl('magnet_range');
+    if (magnetLvl > 0) {
+      this.player.upgradeState.magnetRadius += 20 * magnetLvl;
+    }
+
+    // Revive charges
+    const reviveLvl = lvl('revive');
+    if (reviveLvl > 0) {
+      this.player.reviveCharges = reviveLvl >= 10 ? 3 : reviveLvl >= 5 ? 2 : 1;
+    }
   }
 
   private buildLevel(): void {
@@ -153,17 +215,19 @@ export class GameScene extends Phaser.Scene {
 
     this.enemies.getChildren().forEach(e => (e as Enemy).update());
     this.coins.getChildren().forEach(c => (c as Coin).update());
+    this.gears.getChildren().forEach(g => (g as Gear).update());
     this.projectiles.getChildren().forEach(p => (p as Projectile).update());
 
     // Magnet: pull coins toward player
-    if (this.player.upgradeState.hasMagnet) {
+    const magR = this.player.upgradeState.magnetRadius;
+    if (magR > 0) {
       this.coins.getChildren().forEach(c => {
         const coin = c as Coin;
         if (!coin.active) return;
         const dx = this.player.x - coin.x;
         const dy = this.player.y - coin.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 350 && dist > 5) {
+        if (dist < magR && dist > 5) {
           const body = coin.body as Phaser.Physics.Arcade.Body;
           body.setVelocity((dx / dist) * 300, (dy / dist) * 300);
         }
@@ -177,11 +241,48 @@ export class GameScene extends Phaser.Scene {
     this.gameState.hp = this.player.hp;
     this.gameState.maxHp = this.player.maxHp;
     this.gameState.activeUpgrades = this.player.upgradeState.activeUpgrades;
+    this.gameState.gearsThisRun = this.gearsThisRun;
     this.updateUI();
 
     if (this.player.hp <= 0 && !this.gameOver) {
-      this.triggerGameOver();
+      if (this.player.reviveCharges > 0) {
+        this.player.reviveCharges--;
+        this.player.hp = Math.ceil(this.player.maxHp * 0.5);
+        this.showReviveEffect();
+      } else {
+        this.triggerGameOver();
+      }
     }
+  }
+
+  private showReviveEffect(): void {
+    const charges = this.player.reviveCharges;
+    const t = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, `💫 REVIVED! (${charges} left)`, {
+      fontSize: '36px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#aaddff',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(98);
+
+    this.tweens.add({
+      targets: t,
+      y: GAME_HEIGHT / 2 - 80,
+      alpha: 0,
+      duration: 1500,
+      ease: 'Power2',
+      onComplete: () => t.destroy(),
+    });
+
+    // Brief flash of white
+    const flash = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xaaddff, 0.5).setDepth(97);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      duration: 400,
+      ease: 'Power2',
+      onComplete: () => flash.destroy(),
+    });
   }
 
   private checkPlayerEnemyCollisions(): void {
@@ -192,7 +293,6 @@ export class GameScene extends Phaser.Scene {
       if (dist < enemy.contactRadius + 20) {
         const wasInvincible = this.player.isCurrentlyInvincible;
         this.player.takeDamage(enemy.contactDamage);
-        // Thorns: reflect damage if we weren't invincible
         if (!wasInvincible && this.player.upgradeState.thorns > 0) {
           enemy.takeDamage(this.player.upgradeState.thorns);
         }
@@ -321,6 +421,34 @@ export class GameScene extends Phaser.Scene {
     this.updateUI();
   }
 
+  collectGear(gear: Gear): void {
+    this.gearsThisRun++;
+    this.gameState.gearsThisRun = this.gearsThisRun;
+    gear.destroy();
+    this.audio.playSFX('coin');
+    this.spawnGearParticles(gear.x, gear.y);
+    this.updateUI();
+  }
+
+  private spawnGearParticles(x: number, y: number): void {
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const dist = Phaser.Math.Between(20, 45);
+      const p = this.add.rectangle(x, y, 4, 4, 0xaaaadd).setDepth(20);
+      this.tweens.add({
+        targets: p,
+        x: x + Math.cos(angle) * dist,
+        y: y + Math.sin(angle) * dist,
+        alpha: 0,
+        scaleX: 0,
+        scaleY: 0,
+        duration: Phaser.Math.Between(200, 350),
+        ease: 'Power2',
+        onComplete: () => p.destroy(),
+      });
+    }
+  }
+
   onEnemyDied(): void {
     this.gameState.enemiesRemaining = Math.max(0, this.gameState.enemiesRemaining - 1);
     if (this.player?.active && this.player.upgradeState.lifestealHp > 0) {
@@ -334,6 +462,15 @@ export class GameScene extends Phaser.Scene {
     if (this.gameOver) return;
     const nextWave = waveNumber + 1;
     this.gameState.wave = nextWave;
+
+    // Wave-clear gear bonus every 5 waves (boss waves)
+    if (waveNumber % 5 === 0) {
+      const bonus = Phaser.Math.Between(1, 2);
+      this.gearsThisRun += bonus;
+      this.gameState.gearsThisRun = this.gearsThisRun;
+      this.showBonusGears(bonus);
+    }
+
     this.updateUI();
 
     this.time.delayedCall(800, () => {
@@ -342,6 +479,35 @@ export class GameScene extends Phaser.Scene {
       this.registry.set('upgradeWave', nextWave);
       this.scene.pause();
       this.scene.launch('UpgradeScene');
+    });
+  }
+
+  private showBonusGears(n: number): void {
+    const t = this.add.text(GAME_WIDTH / 2, 250, `+${n} ⚙ bonus gears!`, {
+      fontSize: '26px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#aaaadd',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(55).setAlpha(0);
+
+    this.tweens.add({
+      targets: t,
+      alpha: 1,
+      y: 220,
+      duration: 300,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(900, () => {
+          this.tweens.add({
+            targets: t,
+            alpha: 0,
+            y: 190,
+            duration: 300,
+            onComplete: () => t.destroy(),
+          });
+        });
+      },
     });
   }
 
@@ -362,8 +528,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateUI(): void {
+    if (!this.scene.isActive('UIScene')) return;
     const ui = this.scene.get('UIScene') as Phaser.Scene & { updateState?: (s: GameState) => void };
-    if (ui && ui.updateState) {
+    if (ui?.updateState) {
       ui.updateState({ ...this.gameState });
     }
   }
@@ -381,6 +548,9 @@ export class GameScene extends Phaser.Scene {
     localStorage.setItem('bestWave', String(best));
     const isNewRecord = reached > prev;
 
+    // Persist gears earned this run
+    MetaProgress.addGears(this.gearsThisRun);
+
     const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0).setDepth(100);
     this.tweens.add({
       targets: overlay,
@@ -392,14 +562,14 @@ export class GameScene extends Phaser.Scene {
 
   private buildGameOverPanel(reached: number, best: number, isNewRecord: boolean): void {
     const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
+    const cy = GAME_HEIGHT / 2 - 10;
     const panel = this.add.container(cx, cy).setDepth(110);
 
-    const glow = this.add.rectangle(0, 0, 616, 436, 0xe74c3c, 0.12);
-    const bg = this.add.rectangle(0, 0, 600, 420, 0x080808, 0.95);
+    const glow = this.add.rectangle(0, 0, 616, 556, 0xe74c3c, 0.1);
+    const bg = this.add.rectangle(0, 0, 600, 540, 0x080808, 0.95);
     bg.setStrokeStyle(2, 0xe74c3c);
 
-    const title = this.add.text(0, -155, 'GAME OVER', {
+    const title = this.add.text(0, -230, 'GAME OVER', {
       fontSize: '72px',
       fontFamily: 'Arial Black, Arial',
       color: '#e74c3c',
@@ -407,37 +577,71 @@ export class GameScene extends Phaser.Scene {
       strokeThickness: 6,
     }).setOrigin(0.5);
 
-    const waveText = this.add.text(0, -82, `Wave: ${reached}`, {
+    const waveText = this.add.text(0, -158, `Wave: ${reached}`, {
       fontSize: '28px',
       fontFamily: 'Arial Black, Arial',
       color: '#ecf0f1',
     }).setOrigin(0.5);
 
     const recordText = isNewRecord
-      ? this.add.text(0, -50, '🏆 NEW RECORD!', {
+      ? this.add.text(0, -124, '🏆 NEW RECORD!', {
           fontSize: '22px',
           fontFamily: 'Arial Black, Arial',
           color: '#ffd700',
         }).setOrigin(0.5)
-      : this.add.text(0, -50, `Best: ${best}`, {
+      : this.add.text(0, -124, `Best: ${best}`, {
           fontSize: '18px',
           fontFamily: 'Arial',
           color: '#666666',
         }).setOrigin(0.5);
 
-    const coinsText = this.add.text(0, -5, `Coins collected: ${this.gameState.coins}`, {
+    const coinsText = this.add.text(0, -86, `Coins collected: ${this.gameState.coins}`, {
       fontSize: '22px',
       fontFamily: 'Arial',
       color: '#ffd700',
     }).setOrigin(0.5);
 
-    const upgradesText = this.add.text(0, 32, `Upgrades taken: ${this.player.upgradeState.activeUpgrades.length}`, {
+    const upgradesText = this.add.text(0, -55, `Upgrades taken: ${this.player.upgradeState.activeUpgrades.length}`, {
       fontSize: '18px',
       fontFamily: 'Arial',
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
-    const tryAgainBtn = this.add.text(0, 108, '[ TRY AGAIN ]', {
+    // Separator
+    const sep = this.add.rectangle(0, -32, 400, 1, 0x444444);
+
+    // Gear count-up animation
+    const gearsEarned = this.gearsThisRun;
+    const totalGears = MetaProgress.getGears();
+    const gearsObj = { value: 0 };
+
+    const gearsText = this.add.text(0, -12, '⚙ Gears earned this run: 0', {
+      fontSize: '20px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#aaaadd',
+    }).setOrigin(0.5);
+
+    const totalText = this.add.text(0, 18, `⚙ Total gears: ${totalGears}`, {
+      fontSize: '16px',
+      fontFamily: 'Arial',
+      color: '#777799',
+    }).setOrigin(0.5);
+
+    // Count-up animation
+    this.tweens.add({
+      targets: gearsObj,
+      value: gearsEarned,
+      duration: 1000,
+      ease: 'Power2',
+      onUpdate: () => {
+        gearsText.setText(`⚙ Gears earned this run: ${Math.floor(gearsObj.value)}`);
+      },
+      onComplete: () => {
+        gearsText.setText(`⚙ Gears earned this run: ${gearsEarned}`);
+      },
+    });
+
+    const tryAgainBtn = this.add.text(0, 80, '[ TRY AGAIN ]', {
       fontSize: '34px',
       fontFamily: 'Arial Black, Arial',
       color: '#4ecdc4',
@@ -449,8 +653,36 @@ export class GameScene extends Phaser.Scene {
     tryAgainBtn.on('pointerout', () => tryAgainBtn.setColor('#4ecdc4'));
     tryAgainBtn.on('pointerdown', () => this.scene.start('GameScene'));
 
-    const menuBtn = this.add.text(0, 160, '[ MAIN MENU ]', {
+    // Workshop button (pulsing glow if player has unspent gears)
+    const workshopGlowRect = this.add.rectangle(0, 135, 260, 46, 0xffaa00, 0);
+    const workshopBtn = this.add.text(0, 135, '[ ⚙ VISIT WORKSHOP ]', {
       fontSize: '26px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#ffcc66',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    if (totalGears > 0) {
+      this.tweens.add({
+        targets: workshopGlowRect,
+        alpha: 0.3,
+        duration: 600,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
+
+    workshopBtn.on('pointerover', () => workshopBtn.setColor('#ffffff'));
+    workshopBtn.on('pointerout', () => workshopBtn.setColor('#ffcc66'));
+    workshopBtn.on('pointerdown', () => {
+      MetaProgress.markWorkshopVisited();
+      this.scene.start('WorkshopScene');
+    });
+
+    const menuBtn = this.add.text(0, 190, '[ MAIN MENU ]', {
+      fontSize: '22px',
       fontFamily: 'Arial',
       color: '#888888',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -459,7 +691,24 @@ export class GameScene extends Phaser.Scene {
     menuBtn.on('pointerout', () => menuBtn.setColor('#888888'));
     menuBtn.on('pointerdown', () => this.scene.start('MenuScene'));
 
-    panel.add([glow, bg, title, waveText, recordText, coinsText, upgradesText, tryAgainBtn, menuBtn]);
+    // First-time workshop nudge
+    const firstTime = !MetaProgress.hasVisitedWorkshop() && gearsEarned > 0;
+    const nudge = firstTime
+      ? this.add.text(0, 222, '↑ Spend your gears here to grow stronger!', {
+          fontSize: '13px',
+          fontFamily: 'Arial',
+          color: '#ffaa44',
+        }).setOrigin(0.5)
+      : this.add.text(0, 0, '', { fontSize: '1px' });
+
+    panel.add([
+      glow, bg,
+      title, waveText, recordText, coinsText, upgradesText,
+      sep, gearsText, totalText,
+      tryAgainBtn,
+      workshopGlowRect, workshopBtn, menuBtn,
+      nudge,
+    ]);
 
     panel.setScale(0.85).setAlpha(0);
     this.tweens.add({

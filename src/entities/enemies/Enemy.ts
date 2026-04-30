@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { GameScene } from '../../scenes/GameScene';
 import { Coin } from '../Coin';
+import { Gear } from '../Gear';
+import { MetaProgress } from '../../systems/MetaProgress';
 
 export interface EnemyMultipliers {
   hp?: number;
@@ -140,6 +142,8 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.y += (dy / len) * force;
   }
 
+  protected getGearDrop(): number { return 0; }
+
   protected die(): void {
     if (this.dying) return;
     this.dying = true;
@@ -149,6 +153,18 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
       const ox = Phaser.Math.Between(-20, 20);
       const oy = Phaser.Math.Between(-20, 20);
       new Coin(this.gameScene, this.x + ox, this.y + oy);
+    }
+
+    const bossGears = this.getGearDrop();
+    if (bossGears > 0) {
+      for (let i = 0; i < bossGears; i++) {
+        new Gear(this.gameScene, this.x + Phaser.Math.Between(-35, 35), this.y + Phaser.Math.Between(-20, 20));
+      }
+    } else {
+      const chance = 0.05 + MetaProgress.getUpgradeLevel('gear_chance') * 0.005;
+      if (Math.random() < chance) {
+        new Gear(this.gameScene, this.x, this.y);
+      }
     }
 
     this.scene.tweens.add({
