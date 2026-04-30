@@ -22,7 +22,7 @@ export class MenuScene extends Phaser.Scene {
     this.spawnBgDecorations();
 
     // Title
-    this.add.text(GAME_WIDTH / 2, 200, 'AD SLAYER', {
+    this.add.text(GAME_WIDTH / 2, 200, 'ADPOCALYPSE', {
       fontSize: '96px',
       fontFamily: 'Arial Black, Arial',
       color: '#4ecdc4',

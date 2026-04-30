@@ -1,4 +1,4 @@
-# Ad Slayer
+# Adpocalypse
 
 A browser-based 2D arcade game where you fight internet ads — popups, cookie banners, and premium spam popups — across enemy waves. Built with Phaser 3, TypeScript, and Vite.
 

@@ -17,13 +17,13 @@ export class YandexSDK {
 
   saveProgress(data: unknown): void {
     console.log('[YandexSDK] saveProgress — using localStorage stub');
-    localStorage.setItem('adslayer_save', JSON.stringify(data));
+    localStorage.setItem('adpocalypse_save', JSON.stringify(data));
     // TODO: ysdk.getPlayer().then(p => p.setData(data))
   }
 
   loadProgress(): unknown {
     console.log('[YandexSDK] loadProgress — using localStorage stub');
-    const raw = localStorage.getItem('adslayer_save');
+    const raw = localStorage.getItem('adpocalypse_save');
     return raw ? JSON.parse(raw) : null;
     // TODO: ysdk.getPlayer().then(p => p.getData())
   }
