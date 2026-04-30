@@ -149,7 +149,8 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.dying = true;
     (this.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
 
-    for (let i = 0; i < this.coinDrop; i++) {
+    const bonusCoin = this.gameScene.player?.upgradeState?.bonusCoinDrop ?? 0;
+    for (let i = 0; i < this.coinDrop + bonusCoin; i++) {
       const ox = Phaser.Math.Between(-20, 20);
       const oy = Phaser.Math.Between(-20, 20);
       new Coin(this.gameScene, this.x + ox, this.y + oy);
@@ -161,7 +162,8 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
         new Gear(this.gameScene, this.x + Phaser.Math.Between(-35, 35), this.y + Phaser.Math.Between(-20, 20));
       }
     } else {
-      const chance = 0.05 + MetaProgress.getUpgradeLevel('gear_chance') * 0.005;
+      const runGearBonus = this.gameScene.player?.upgradeState?.gearDropBonus ?? 0;
+      const chance = 0.05 + MetaProgress.getUpgradeLevel('gear_chance') * 0.005 + runGearBonus;
       if (Math.random() < chance) {
         new Gear(this.gameScene, this.x, this.y);
       }

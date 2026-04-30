@@ -124,6 +124,16 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.events.on('resume', () => {
+      // Shop path
+      const shopWave = this.registry.get('shopNextWave') as number | undefined;
+      if (shopWave !== undefined) {
+        this.registry.remove('shopNextWave');
+        const effects = (this.registry.get('shopPendingEffects') as string[] | undefined) ?? [];
+        this.registry.remove('shopPendingEffects');
+        this.applyShopEffects(effects, shopWave);
+        return;
+      }
+      // Upgrade path
       const nextWave = this.registry.get('upgradeNextWave') as number | undefined;
       if (nextWave !== undefined) {
         this.registry.remove('upgradeNextWave');
@@ -332,6 +342,11 @@ export class GameScene extends Phaser.Scene {
         enemy.applyHitKnockback(this.player.x, this.player.y, 30);
         this.spawnHitParticles(enemy.x, enemy.y);
         if (isCrit) this.showCritText(enemy.x, enemy.y);
+        if (this.player.upgradeState.doubleStrikeChance > 0 &&
+            Math.random() < this.player.upgradeState.doubleStrikeChance) {
+          enemy.takeDamage(damage);
+          this.showDoubleText(enemy.x, enemy.y);
+        }
       }
     });
   }
@@ -471,14 +486,27 @@ export class GameScene extends Phaser.Scene {
       this.showBonusGears(bonus);
     }
 
+    // Reset time slow applied by shop
+    this.physics.world.timeScale = 1;
+
     this.updateUI();
 
     this.time.delayedCall(800, () => {
       if (this.gameOver) return;
-      this.registry.set('upgradeCards', upgradeCards);
-      this.registry.set('upgradeWave', nextWave);
-      this.scene.pause();
-      this.scene.launch('UpgradeScene');
+
+      const isBossWave = waveNumber % 5 === 0;
+      const isShopWave = waveNumber % 3 === 0 && !isBossWave;
+
+      if (isShopWave) {
+        this.registry.set('shopNextWave', nextWave);
+        this.scene.pause();
+        this.scene.launch('ShopScene');
+      } else {
+        this.registry.set('upgradeCards', upgradeCards);
+        this.registry.set('upgradeWave', nextWave);
+        this.scene.pause();
+        this.scene.launch('UpgradeScene');
+      }
     });
   }
 
@@ -718,6 +746,117 @@ export class GameScene extends Phaser.Scene {
       scaleY: 1,
       duration: 300,
       ease: 'Back.easeOut',
+    });
+  }
+
+  // ── Shop integration ────────────────────────────────────────────────────────
+
+  getCoins(): number { return this.gameState.coins; }
+
+  spendCoins(amount: number): boolean {
+    if (this.gameState.coins < amount) return false;
+    this.gameState.coins -= amount;
+    this.updateUI();
+    return true;
+  }
+
+  applyShopItem(id: string): void {
+    const p = this.player;
+    const u = p.upgradeState;
+    switch (id) {
+      case 'health_potion':    p.heal(30); break;
+      case 'full_heal':        p.hp = p.maxHp; break;
+      case 'coin_magnet_shop': u.magnetRadius += 350; break;
+      case 'damage_boost_shop':
+        u.damageMult *= 1.10;
+        p.meleeDamage = Math.round(p.meleeDamage * 1.10);
+        break;
+      case 'hp_boost_shop':      p.maxHp += 20; p.heal(20); break;
+      case 'speed_boost_shop':   u.speedMult *= 1.08; break;
+      case 'attack_speed_shop':  u.cooldownMult = Math.max(0.25, u.cooldownMult * 0.90); break;
+      case 'lucky_coins':        u.bonusCoinDrop += 1; break;
+      case 'gear_up':            u.gearDropBonus = Math.min(0.95, u.gearDropBonus + 0.02); break;
+      case 'vampire_blade':      u.lifestealHp += 5; break;
+      case 'thorns_shop':        u.thorns += 8; break;
+      case 'double_strike':      u.doubleStrikeChance = Math.min(0.6, u.doubleStrikeChance + 0.20); break;
+      case 'phoenix_feather':    p.reviveCharges += 1; break;
+    }
+    this.gameState.hp = p.hp;
+    this.gameState.maxHp = p.maxHp;
+  }
+
+  private applyShopEffects(effects: string[], nextWave: number): void {
+    if (effects.includes('time_slow')) {
+      this.physics.world.timeScale = 0.7;
+    }
+    this.waveManager.startWave(nextWave);
+    if (effects.includes('bomb')) {
+      this.time.delayedCall(1800, () => this.fireBomb());
+    }
+  }
+
+  private fireBomb(): void {
+    if (this.gameOver) return;
+    this.enemies.getChildren().forEach(e => {
+      const enemy = e as Enemy;
+      if (enemy.active) enemy.takeDamage(50);
+    });
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      const p = this.add.circle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 8, 0xff6600).setDepth(30);
+      this.tweens.add({
+        targets: p,
+        x: GAME_WIDTH / 2 + Math.cos(angle) * 500,
+        y: GAME_HEIGHT / 2 + Math.sin(angle) * 350,
+        alpha: 0,
+        scaleX: 0,
+        scaleY: 0,
+        duration: 600,
+        ease: 'Power2',
+        onComplete: () => p.destroy(),
+      });
+    }
+    const t = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, '💣 BOOM!', {
+      fontSize: '52px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#ff6600',
+      stroke: '#000000',
+      strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(31).setAlpha(0);
+    this.tweens.add({
+      targets: t,
+      alpha: 1,
+      duration: 80,
+      onComplete: () => {
+        this.time.delayedCall(500, () => {
+          this.tweens.add({
+            targets: t,
+            y: t.y - 80,
+            alpha: 0,
+            duration: 600,
+            ease: 'Power2',
+            onComplete: () => t.destroy(),
+          });
+        });
+      },
+    });
+  }
+
+  private showDoubleText(x: number, y: number): void {
+    const t = this.add.text(x + 20, y - 48, '×2!', {
+      fontSize: '20px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#ff9900',
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(25);
+    this.tweens.add({
+      targets: t,
+      y: y - 96,
+      alpha: 0,
+      duration: 500,
+      ease: 'Power2',
+      onComplete: () => t.destroy(),
     });
   }
 }

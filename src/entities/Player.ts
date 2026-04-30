@@ -20,6 +20,9 @@ interface UpgradeState {
   regenRate: number;
   coinMult: number;
   swingMult: number;
+  doubleStrikeChance: number;
+  bonusCoinDrop: number;
+  gearDropBonus: number;
   activeUpgrades: string[];
 }
 
@@ -42,6 +45,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     regenRate: 0,
     coinMult: 1,
     swingMult: 1,
+    doubleStrikeChance: 0,
+    bonusCoinDrop: 0,
+    gearDropBonus: 0,
     activeUpgrades: [],
   };
 
