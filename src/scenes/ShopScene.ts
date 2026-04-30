@@ -32,14 +32,14 @@ const RARITY_LABEL: Record<string, string> = {
   rare: '★ RARE',
 };
 
-const REROLL_COST = 30;
-
 export class ShopScene extends Phaser.Scene {
   private currentItems: ShopItem[] = [];
   private purchasedIds = new Set<string>();
   private pendingEffects: string[] = [];
   private rerollUsed = false;
   private nextWave = 1;
+
+  private get rerollCost(): number { return 10 + (this.nextWave - 1) * 2; }
 
   private coinLabel!: Phaser.GameObjects.Text;
   private cardsContainer!: Phaser.GameObjects.Container;
@@ -52,7 +52,7 @@ export class ShopScene extends Phaser.Scene {
 
   create(): void {
     this.nextWave = (this.registry.get('shopNextWave') as number) ?? 1;
-    this.currentItems = pickShopItems();
+    this.currentItems = pickShopItems(this.nextWave - 1);
     this.purchasedIds = new Set();
     this.pendingEffects = [];
     this.rerollUsed = false;
@@ -91,7 +91,7 @@ export class ShopScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x55aa55)
       .setInteractive({ useHandCursor: true });
 
-    this.rerollLabel = this.add.text(GAME_WIDTH / 2 - 200, footerY, `REROLL  🪙 ${REROLL_COST}`, {
+    this.rerollLabel = this.add.text(GAME_WIDTH / 2 - 200, footerY, `🎲 REFRESH  🪙 ${this.rerollCost}`, {
       fontSize: '16px',
       fontFamily: 'Arial Black, Arial',
       color: '#55cc55',
@@ -242,11 +242,11 @@ export class ShopScene extends Phaser.Scene {
   private doReroll(): void {
     if (this.rerollUsed) return;
     const gs = this.scene.get('GameScene') as GameScene;
-    if (!gs.spendCoins(REROLL_COST)) return;
+    if (!gs.spendCoins(this.rerollCost)) return;
 
     this.rerollUsed = true;
     this.purchasedIds = new Set();
-    this.currentItems = pickShopItems();
+    this.currentItems = pickShopItems(this.nextWave - 1);
     this.rebuildCards();
 
     // Disable reroll button visually

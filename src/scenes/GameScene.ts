@@ -764,8 +764,11 @@ export class GameScene extends Phaser.Scene {
     const p = this.player;
     const u = p.upgradeState;
     switch (id) {
+      case 'small_potion':     p.heal(15); break;
       case 'health_potion':    p.heal(30); break;
       case 'full_heal':        p.hp = p.maxHp; break;
+      case 'coin_sack':        this.gameState.coins += 20; break;
+      case 'quick_snack':      p.maxHp += 5; p.hp = p.maxHp; break;
       case 'coin_magnet_shop': u.magnetRadius += 350; break;
       case 'damage_boost_shop':
         u.damageMult *= 1.10;
