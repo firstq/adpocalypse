@@ -68,7 +68,7 @@ export class GameScene extends Phaser.Scene {
       gearsThisRun: 0,
     };
 
-    this.audio = new AudioManager();
+    this.audio = new AudioManager(this);
     this.inputManager = new InputManager(this);
 
     this.buildLevel();
@@ -109,7 +109,6 @@ export class GameScene extends Phaser.Scene {
         const p = proj as Projectile;
         this.player.takeDamage(p.damage);
         p.destroy();
-        this.audio.playSFX('hit');
       },
     );
 
@@ -336,7 +335,7 @@ export class GameScene extends Phaser.Scene {
         }
         enemy.takeDamage(damage);
         enemy.hitThisSwing = true;
-        this.audio.playSFX('attack');
+        this.audio.playSFX('sfx_hit', { detune: Phaser.Math.Between(-100, 100) });
         this.cameras.main.shake(80, 0.005);
         this.triggerHitstop();
         enemy.applyHitKnockback(this.player.x, this.player.y, 30);
@@ -432,7 +431,7 @@ export class GameScene extends Phaser.Scene {
   collectCoin(coin: Coin): void {
     this.gameState.coins += Math.round(coin.value * this.player.upgradeState.coinMult);
     coin.destroy();
-    this.audio.playSFX('coin');
+    this.audio.playSFX('sfx_coin_pickup', { detune: Phaser.Math.Between(-100, 100) });
     this.updateUI();
   }
 
@@ -440,7 +439,7 @@ export class GameScene extends Phaser.Scene {
     this.gearsThisRun++;
     this.gameState.gearsThisRun = this.gearsThisRun;
     gear.destroy();
-    this.audio.playSFX('coin');
+    this.audio.playSFX('sfx_gear_pickup');
     this.spawnGearParticles(gear.x, gear.y);
     this.updateUI();
   }
@@ -475,6 +474,7 @@ export class GameScene extends Phaser.Scene {
 
   onWaveComplete(waveNumber: number, upgradeCards: number): void {
     if (this.gameOver) return;
+    this.audio.playSFX('sfx_wave_complete');
     const nextWave = waveNumber + 1;
     this.gameState.wave = nextWave;
 
@@ -566,7 +566,7 @@ export class GameScene extends Phaser.Scene {
   private triggerGameOver(): void {
     this.gameOver = true;
     this.physics.world.pause();
-    this.audio.playSFX('gameover');
+    this.audio.playSFX('sfx_player_death');
 
     this.scene.stop('UIScene');
 

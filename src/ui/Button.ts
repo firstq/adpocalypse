@@ -35,7 +35,12 @@ export class Button {
       this.bg.setFillStyle(color);
       this.label.setColor('#ffffff');
     });
-    this.bg.on('pointerdown', onClick);
+    this.bg.on('pointerdown', () => {
+      if (scene.cache.audio.exists('sfx_button_click')) {
+        scene.sound.play('sfx_button_click', { volume: 0.6 });
+      }
+      onClick();
+    });
   }
 
   setLabel(text: string): void {

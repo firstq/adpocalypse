@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, UPGRADE_POOL } from '../config';
 import { HPBar } from '../ui/HPBar';
-import { GameState } from './GameScene';
+import { GameScene, GameState } from './GameScene';
 
 export class UIScene extends Phaser.Scene {
   private hpBar!: HPBar;
@@ -74,12 +74,24 @@ export class UIScene extends Phaser.Scene {
       color: '#888888',
     }).setOrigin(0.5, 0);
 
-    // Best wave (top right, left of pause)
-    this.bestText = this.add.text(GAME_WIDTH - 70, 14, 'Best: —', {
+    // Best wave (top right, left of mute/pause)
+    this.bestText = this.add.text(GAME_WIDTH - 108, 14, 'Best: —', {
       fontSize: '16px',
       fontFamily: 'Arial',
       color: '#777777',
     }).setOrigin(1, 0);
+
+    // Mute button
+    const getAudio = () => (this.scene.get('GameScene') as GameScene).audio;
+    const muteBtn = this.add.text(GAME_WIDTH - 56, 14, '🔊', {
+      fontSize: '24px',
+      fontFamily: 'Arial',
+    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    muteBtn.on('pointerdown', () => {
+      const audio = getAudio();
+      audio.setMuted(!audio.isMuted());
+      muteBtn.setText(audio.isMuted() ? '🔇' : '🔊');
+    });
 
     // Pause button
     const pauseBtn = this.add.text(GAME_WIDTH - 20, 14, '⏸', {

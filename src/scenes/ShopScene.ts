@@ -228,6 +228,7 @@ export class ShopScene extends Phaser.Scene {
   private doBuy(item: ShopItem): void {
     const gs = this.scene.get('GameScene') as GameScene;
     if (!gs.spendCoins(item.cost)) return;
+    gs.audio.playSFX('sfx_purchase');
 
     if (item.isPending) {
       this.pendingEffects.push(item.id);
@@ -243,6 +244,7 @@ export class ShopScene extends Phaser.Scene {
     if (this.rerollUsed) return;
     const gs = this.scene.get('GameScene') as GameScene;
     if (!gs.spendCoins(this.rerollCost)) return;
+    gs.audio.playSFX('sfx_reroll');
 
     this.rerollUsed = true;
     this.purchasedIds = new Set();

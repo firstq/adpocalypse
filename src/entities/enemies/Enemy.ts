@@ -208,7 +208,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
       });
     }
 
-    this.gameScene.audio.playSFX('enemyDie');
+    this.gameScene.audio.playSFX('sfx_enemy_death', { detune: Phaser.Math.Between(-150, 150) });
   }
 
   destroy(fromScene?: boolean): void {

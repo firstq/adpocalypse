@@ -128,6 +128,7 @@ export class WaveManager {
 
   private showWaveBanner(waveNumber: number, isBoss: boolean): void {
     if (isBoss) {
+      this.scene.audio.playSFX('sfx_boss_appear');
       const bossIndex = Math.floor(waveNumber / 5);
       const bossName = getBossTierName(bossIndex);
       const items: Phaser.GameObjects.Text[] = [];

@@ -272,6 +272,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.attackCooldown) return;
     this.isAttacking = true;
     this.attackCooldown = true;
+    this.gameScene.audio.playSFX('sfx_attack');
 
     this.gameScene.enemies.getChildren().forEach(e => {
       (e as unknown as { hitThisSwing: boolean }).hitThisSwing = false;
@@ -348,7 +349,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.invincible || this.hp <= 0) return;
     this.hp = Math.max(0, this.hp - amount);
     this.invincible = true;
-    this.gameScene.audio.playSFX('damage');
+    this.gameScene.audio.playSFX('sfx_player_hurt');
     this.gameScene.cameras.main.shake(200, 0.01);
     this.gameScene.triggerDamageFlash();
     this.scene.time.delayedCall(PLAYER_INVINCIBILITY_MS, () => {

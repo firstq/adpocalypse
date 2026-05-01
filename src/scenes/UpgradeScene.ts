@@ -99,6 +99,7 @@ export class UpgradeScene extends Phaser.Scene {
     });
     container.on('pointerdown', () => {
       const gameScene = this.scene.get('GameScene') as GameScene;
+      gameScene.audio.playSFX('sfx_upgrade_select');
       gameScene.player.applyUpgrade(upg.id);
       this.resumeGame(nextWave);
     });
