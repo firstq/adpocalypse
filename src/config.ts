@@ -22,6 +22,7 @@ export const COLORS = {
   autoplayVideo: 0x2980b9,
   bossPopup: 0xff4500,
   coin: 0xffd700,
+  gear: 0x999999,
   projectile: 0x9b59b6,
   hpBar: 0x2ecc71,
   hpBarBg: 0x7f8c8d,

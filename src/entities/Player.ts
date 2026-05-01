@@ -15,11 +15,14 @@ interface UpgradeState {
   cooldownMult: number;
   lifestealHp: number;
   critChance: number;
-  hasMagnet: boolean;
+  magnetRadius: number;
   thorns: number;
   regenRate: number;
   coinMult: number;
   swingMult: number;
+  doubleStrikeChance: number;
+  bonusCoinDrop: number;
+  gearDropBonus: number;
   activeUpgrades: string[];
 }
 
@@ -27,6 +30,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   hp: number = PLAYER_HP;
   maxHp: number = PLAYER_HP;
   meleeDamage: number = PLAYER_MELEE_DAMAGE;
+  reviveCharges: number = 0;
   facingRight: boolean = true;
   isAttacking: boolean = false;
 
@@ -36,11 +40,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     cooldownMult: 1,
     lifestealHp: 0,
     critChance: 0,
-    hasMagnet: false,
+    magnetRadius: 0,
     thorns: 0,
     regenRate: 0,
     coinMult: 1,
     swingMult: 1,
+    doubleStrikeChance: 0,
+    bonusCoinDrop: 0,
+    gearDropBonus: 0,
     activeUpgrades: [],
   };
 
@@ -129,7 +136,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         u.critChance = Math.min(0.75, u.critChance + 0.25);
         break;
       case 'magnet':
-        u.hasMagnet = true;
+        u.magnetRadius += 350;
         break;
       case 'thorns':
         u.thorns += 5;

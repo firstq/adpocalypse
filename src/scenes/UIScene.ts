@@ -6,6 +6,7 @@ import { GameState } from './GameScene';
 export class UIScene extends Phaser.Scene {
   private hpBar!: HPBar;
   private coinText!: Phaser.GameObjects.Text;
+  private gearText!: Phaser.GameObjects.Text;
   private waveText!: Phaser.GameObjects.Text;
   private bestText!: Phaser.GameObjects.Text;
   private enemyBar!: Phaser.GameObjects.Rectangle;
@@ -34,15 +35,24 @@ export class UIScene extends Phaser.Scene {
 
     // Coin counter
     this.coinText = this.add.text(10, 50, '🪙 0', {
-      fontSize: '22px',
+      fontSize: '20px',
       fontFamily: 'Arial',
       color: '#ffd700',
       stroke: '#000000',
       strokeThickness: 3,
     });
 
+    // Gear counter (run total)
+    this.gearText = this.add.text(10, 74, '⚙ 0', {
+      fontSize: '16px',
+      fontFamily: 'Arial',
+      color: '#aaaacc',
+      stroke: '#000000',
+      strokeThickness: 2,
+    });
+
     // Upgrade icons row
-    this.upgradeIcons = this.add.container(10, 82);
+    this.upgradeIcons = this.add.container(10, 96);
 
     // Wave info (top center)
     this.waveText = this.add.text(GAME_WIDTH / 2, 14, 'Wave 1', {
@@ -136,6 +146,7 @@ export class UIScene extends Phaser.Scene {
     if (!this.hpBar) return; // create() not yet called
     this.hpBar?.setValue(state.hp, state.maxHp);
     this.coinText?.setText(`🪙 ${state.coins}`);
+    this.gearText?.setText(`⚙ ${state.gearsThisRun}`);
 
     const isBoss = state.wave > 1 && (state.wave - 1) % 5 === 0;
     const waveColor = isBoss ? '#ff6600' : '#ecf0f1';

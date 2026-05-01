@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import { Button } from '../ui/Button';
 import { AudioManager } from '../systems/AudioManager';
+import { MetaProgress } from '../systems/MetaProgress';
 
 export class MenuScene extends Phaser.Scene {
   private audio!: AudioManager;
@@ -13,16 +14,13 @@ export class MenuScene extends Phaser.Scene {
   create(): void {
     this.audio = new AudioManager();
 
-    // Background gradient-like fill
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x16213e, 0x16213e, 1);
     bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Decorative ad enemies drifting in background
     this.spawnBgDecorations();
 
-    // Title
-    this.add.text(GAME_WIDTH / 2, 200, 'ADPOCALYPSE', {
+    this.add.text(GAME_WIDTH / 2, 185, 'ADPOCALYPSE', {
       fontSize: '96px',
       fontFamily: 'Arial Black, Arial',
       color: '#4ecdc4',
@@ -30,32 +28,57 @@ export class MenuScene extends Phaser.Scene {
       strokeThickness: 8,
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 300, 'Fight the Internet!', {
+    this.add.text(GAME_WIDTH / 2, 285, 'Fight the Internet!', {
       fontSize: '28px',
       fontFamily: 'Arial',
       color: '#a8dadc',
     }).setOrigin(0.5);
 
-    // Play button
-    new Button(this, GAME_WIDTH / 2, 430, 200, 60, 'PLAY', () => {
+    // Best wave stat
+    const bestWave = parseInt(localStorage.getItem('bestWave') || '0');
+    if (bestWave > 0) {
+      this.add.text(GAME_WIDTH / 2, 320, `Best: Wave ${bestWave}`, {
+        fontSize: '18px',
+        fontFamily: 'Arial',
+        color: '#ffd700',
+      }).setOrigin(0.5);
+    }
+
+    new Button(this, GAME_WIDTH / 2, 390, 200, 60, 'PLAY', () => {
       this.scene.start('GameScene');
-      // UIScene is launched by GameScene.create() automatically
     });
 
-    // Mute button
+    const gears = MetaProgress.getGears();
+    new Button(this, GAME_WIDTH / 2, 468, 220, 54, `⚙ WORKSHOP (${gears})`, () => {
+      MetaProgress.markWorkshopVisited();
+      this.scene.start('WorkshopScene');
+    }, 0x334466);
+
     let muted = false;
-    const muteBtn = new Button(this, GAME_WIDTH / 2, 520, 200, 50, '🔊 SOUND', () => {
+    const muteBtn = new Button(this, GAME_WIDTH / 2, 542, 200, 50, '🔊 SOUND', () => {
       muted = !muted;
       this.audio.setMuted(muted);
       muteBtn.setLabel(muted ? '🔇 MUTED' : '🔊 SOUND');
     }, 0x555555);
 
-    // Controls hint
     this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 40, 'WASD / Arrows — Move   |   Space / Click — Attack', {
       fontSize: '18px',
       fontFamily: 'Arial',
       color: '#7f8c8d',
     }).setOrigin(0.5);
+
+    // Hidden reset: Ctrl+Shift+R
+    if (this.input.keyboard) {
+      this.input.keyboard.on('keydown', (event: KeyboardEvent) => {
+        if (event.ctrlKey && event.shiftKey && event.code === 'KeyR') {
+          const confirmed = window.confirm('Reset ALL progress (gears, upgrades, best wave)? This cannot be undone.');
+          if (confirmed) {
+            MetaProgress.resetAll();
+            this.scene.restart();
+          }
+        }
+      });
+    }
   }
 
   private spawnBgDecorations(): void {
