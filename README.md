@@ -1,6 +1,10 @@
 # Adpocalypse
 
-A browser-based 2D arcade game where you fight internet ads — popups, cookie banners, and premium spam popups — across enemy waves. Built with Phaser 3, TypeScript, and Vite.
+A browser-based 2D arcade game where you fight internet ads — popups, cookie banners, and premium spam — across endless enemy waves. Built with Phaser 3, TypeScript, and Vite.
+
+## Play Now
+
+**itch.io:** _(link coming soon)_
 
 ## Quick Start
 
@@ -11,22 +15,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Build for Production (Yandex Games)
+## Build
 
 ```bash
-npm run build
+npm run build          # TypeScript compile + Vite production build → dist/
+npm run build:itch     # Same + packages dist/ into adpocalypse-itch.zip
+npm run preview        # Serve dist/ locally to test before upload
 ```
 
-Output goes to `dist/`. Upload the entire `dist/` folder to Yandex Games.
-
-### Yandex Games SDK
-
-Uncomment the SDK script tag in `index.html` before deploying:
-```html
-<script src="/sdk.js"></script>
-```
-
-Then swap the stubs in `src/systems/YandexSDK.ts` for real SDK calls.
+Upload `adpocalypse-itch.zip` directly on itch.io (HTML game, no server needed).
 
 ## Development Commands
 
@@ -34,6 +31,7 @@ Then swap the stubs in `src/systems/YandexSDK.ts` for real SDK calls.
 |---|---|
 | `npm run dev` | Start dev server with HMR on port 3000 |
 | `npm run build` | TypeScript compile + Vite production build |
+| `npm run build:itch` | Build + zip for itch.io upload |
 | `npm run preview` | Preview production build locally |
 | `npm run lint` | ESLint on all TypeScript source files |
 
