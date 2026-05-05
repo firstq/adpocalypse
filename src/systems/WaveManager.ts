@@ -7,7 +7,9 @@ import { CookieBanner } from '../entities/enemies/CookieBanner';
 import { PremiumPopup } from '../entities/enemies/PremiumPopup';
 import { SpamEmail } from '../entities/enemies/SpamEmail';
 import { AutoplayVideo } from '../entities/enemies/AutoplayVideo';
-import { BossPopup, getBossTierName } from '../entities/enemies/BossPopup';
+import { AlgorithmBoss } from '../entities/bosses/AlgorithmBoss';
+import { SpamBoss } from '../entities/bosses/SpamBoss';
+import { ScrollBoss } from '../entities/bosses/ScrollBoss';
 
 interface WaveDef {
   popupClose: number;
@@ -16,7 +18,6 @@ interface WaveDef {
   spamEmail: number;
   autoplayVideo: number;
   isBoss: boolean;
-  bossHp?: number;
 }
 
 export class WaveManager {
@@ -24,6 +25,7 @@ export class WaveManager {
   private currentWave = 0;
   private remaining = 0;
   private totalInWave = 0;
+  private waveCompleteTriggered = false;
 
   constructor(scene: GameScene) {
     this.scene = scene;
@@ -31,9 +33,12 @@ export class WaveManager {
 
   startWave(waveNumber: number): void {
     this.currentWave = waveNumber;
+    this.waveCompleteTriggered = false;
+
     const def = this.buildWaveDef(waveNumber);
-    this.totalInWave = def.popupClose + def.cookieBanner + def.premiumPopup +
-      def.spamEmail + def.autoplayVideo + (def.isBoss ? 1 : 0);
+    this.totalInWave = def.isBoss
+      ? 1
+      : def.popupClose + def.cookieBanner + def.premiumPopup + def.spamEmail + def.autoplayVideo;
     this.remaining = this.totalInWave;
 
     this.scene.setWave(waveNumber);
@@ -42,30 +47,20 @@ export class WaveManager {
 
     this.showWaveBanner(waveNumber, def.isBoss);
 
+    if (def.isBoss) {
+      // Boss spawns after intro banner fades (~2.5 s)
+      this.scene.time.delayedCall(2500, () => this.spawnBoss(waveNumber));
+      return;
+    }
+
     const mult = this.buildMult(waveNumber);
     let delay = 700;
     const interval = 420;
-
-    if (def.isBoss) {
-      const bossIndex = Math.floor(waveNumber / 5);
-      this.scene.time.delayedCall(800, () => {
-        new BossPopup(this.scene, GAME_WIDTH / 2, 200, def.bossHp!, bossIndex);
-      });
-      for (let i = 0; i < def.popupClose; i++) {
-        this.scene.time.delayedCall(delay + i * interval, () => this.spawnPopupClose(mult));
-      }
-      delay += def.popupClose * interval;
-      for (let i = 0; i < def.spamEmail; i++) {
-        this.scene.time.delayedCall(delay + i * 150, () => this.spawnSpamEmail(mult));
-      }
-      return;
-    }
 
     for (let i = 0; i < def.popupClose; i++) {
       this.scene.time.delayedCall(delay, () => this.spawnPopupClose(mult));
       delay += interval;
     }
-    // Spam emails come in quick clusters
     let spamSpawned = 0;
     while (spamSpawned < def.spamEmail) {
       const clusterSize = Math.min(Phaser.Math.Between(3, 4), def.spamEmail - spamSpawned);
@@ -89,20 +84,31 @@ export class WaveManager {
     }
   }
 
+  private spawnBoss(waveNumber: number): void {
+    // bossType cycles: 0=Algorithm, 1=Spam, 2=Scroll
+    const bossIndex = Math.floor(waveNumber / 5);        // 1, 2, 3, 4, 5…
+    const bossType = (bossIndex - 1) % 3;                // 0, 1, 2, 0, 1…
+    const cycle = Math.floor((bossIndex - 1) / 3);       // 0, 0, 0, 1, 1…
+
+    const cx = GAME_WIDTH / 2;
+    switch (bossType) {
+      case 0:
+        new AlgorithmBoss(this.scene, cx, 200, 300 + 150 * cycle, waveNumber);
+        break;
+      case 1:
+        new SpamBoss(this.scene, cx, 170, 400 + 200 * cycle, waveNumber);
+        break;
+      case 2:
+        new ScrollBoss(this.scene, cx, 200, 500 + 250 * cycle, waveNumber);
+        break;
+    }
+  }
+
   private buildWaveDef(N: number): WaveDef {
     if (N % 5 === 0) {
-      const bossIndex = Math.floor(N / 5);
-      // More adds for higher-tier bosses
-      const adds = Math.min(3 + bossIndex, 6);
-      const spamAdds = bossIndex >= 3 ? Math.min(bossIndex - 1, 4) : 0;
       return {
-        popupClose: adds,
-        cookieBanner: 0,
-        premiumPopup: 0,
-        spamEmail: spamAdds,
-        autoplayVideo: 0,
-        isBoss: true,
-        bossHp: 200 + 70 * bossIndex,
+        popupClose: 0, cookieBanner: 0, premiumPopup: 0,
+        spamEmail: 0, autoplayVideo: 0, isBoss: true,
       };
     }
 
@@ -111,9 +117,8 @@ export class WaveManager {
     const premium  = N >= 3 ? Math.min(3, 1 + Math.floor((N - 3) / 3)) : 0;
     const cookie   = N >= 2 ? Math.min(5, 1 + Math.floor((N - 2) / 2)) : 0;
     const spam     = N >= 4 ? Math.min(8, 3 + Math.floor((N - 4) / 2)) : 0;
-
-    const special = autoplay + premium + cookie + spam;
-    const popup = Math.max(3, total - special);
+    const special  = autoplay + premium + cookie + spam;
+    const popup    = Math.max(3, total - special);
 
     return { popupClose: popup, cookieBanner: cookie, premiumPopup: premium, spamEmail: spam, autoplayVideo: autoplay, isBoss: false };
   }
@@ -129,38 +134,29 @@ export class WaveManager {
   private showWaveBanner(waveNumber: number, isBoss: boolean): void {
     if (isBoss) {
       this.scene.audio.playSFX('sfx_boss_appear');
-      const bossIndex = Math.floor(waveNumber / 5);
-      const bossName = getBossTierName(bossIndex);
-      const items: Phaser.GameObjects.Text[] = [];
+      const bossType = ((Math.floor(waveNumber / 5)) - 1) % 3;
+      const bossNames = [AlgorithmBoss.NAME, SpamBoss.NAME, ScrollBoss.NAME];
+      const bossName = bossNames[bossType];
 
+      const items: Phaser.GameObjects.Text[] = [];
       const waveLabel = this.scene.add.text(GAME_WIDTH / 2, 170, `⚠ BOSS WAVE ${waveNumber} ⚠`, {
-        fontSize: '54px',
-        fontFamily: 'Arial Black, Arial',
-        color: '#ff4500',
-        stroke: '#000000',
-        strokeThickness: 6,
+        fontSize: '54px', fontFamily: 'Arial Black, Arial', color: '#ff4500',
+        stroke: '#000000', strokeThickness: 6,
       }).setOrigin(0.5).setDepth(50).setAlpha(0);
 
       const nameLabel = this.scene.add.text(GAME_WIDTH / 2, 240, bossName, {
-        fontSize: '36px',
-        fontFamily: 'Arial Black, Arial',
-        color: '#ffcc00',
-        stroke: '#000000',
-        strokeThickness: 4,
+        fontSize: '36px', fontFamily: 'Arial Black, Arial', color: '#ffcc00',
+        stroke: '#000000', strokeThickness: 4,
       }).setOrigin(0.5).setDepth(50).setAlpha(0);
 
       items.push(waveLabel, nameLabel);
+
       this.scene.tweens.add({
-        targets: items,
-        alpha: 1,
-        duration: 300,
-        ease: 'Back.easeOut',
+        targets: items, alpha: 1, duration: 300, ease: 'Back.easeOut',
         onComplete: () => {
           this.scene.time.delayedCall(1500, () => {
             this.scene.tweens.add({
-              targets: items,
-              alpha: 0,
-              duration: 300,
+              targets: items, alpha: 0, duration: 300,
               onComplete: () => items.forEach(t => t.destroy()),
             });
           });
@@ -170,26 +166,16 @@ export class WaveManager {
     }
 
     const text = this.scene.add.text(GAME_WIDTH / 2, 200, `WAVE ${waveNumber}`, {
-      fontSize: '72px',
-      fontFamily: 'Arial Black, Arial',
-      color: '#f1c40f',
-      stroke: '#000000',
-      strokeThickness: 6,
+      fontSize: '72px', fontFamily: 'Arial Black, Arial', color: '#f1c40f',
+      stroke: '#000000', strokeThickness: 6,
     }).setOrigin(0.5).setDepth(50).setAlpha(0);
 
     this.scene.tweens.add({
-      targets: text,
-      alpha: 1,
-      y: 180,
-      duration: 300,
-      ease: 'Back.easeOut',
+      targets: text, alpha: 1, y: 180, duration: 300, ease: 'Back.easeOut',
       onComplete: () => {
         this.scene.time.delayedCall(1200, () => {
           this.scene.tweens.add({
-            targets: text,
-            alpha: 0,
-            y: 150,
-            duration: 300,
+            targets: text, alpha: 0, y: 150, duration: 300,
             onComplete: () => text.destroy(),
           });
         });
@@ -204,40 +190,38 @@ export class WaveManager {
   }
 
   private spawnPopupClose(mult: EnemyMultipliers): void {
-    const x = this.randomEdgeX();
-    const y = Phaser.Math.Between(80, this.scene.groundTop - 40);
-    new PopupClose(this.scene, x, y, mult);
+    new PopupClose(this.scene, this.randomEdgeX(), Phaser.Math.Between(80, this.scene.groundTop - 40), mult);
   }
 
   private spawnCookieBanner(mult: EnemyMultipliers): void {
-    const x = this.randomEdgeX();
-    new CookieBanner(this.scene, x, this.scene.groundTop - 27, mult);
+    new CookieBanner(this.scene, this.randomEdgeX(), this.scene.groundTop - 27, mult);
   }
 
   private spawnPremiumPopup(mult: EnemyMultipliers): void {
-    const x = this.randomEdgeX();
-    const y = Phaser.Math.Between(100, this.scene.groundTop - 100);
-    new PremiumPopup(this.scene, x, y, mult);
+    new PremiumPopup(this.scene, this.randomEdgeX(), Phaser.Math.Between(100, this.scene.groundTop - 100), mult);
   }
 
   private spawnSpamEmail(mult: EnemyMultipliers): void {
-    const x = this.randomEdgeX();
-    const y = Phaser.Math.Between(80, this.scene.groundTop - 40);
-    new SpamEmail(this.scene, x, y, mult);
+    new SpamEmail(this.scene, this.randomEdgeX(), Phaser.Math.Between(80, this.scene.groundTop - 40), mult);
   }
 
   private spawnAutoplayVideo(mult: EnemyMultipliers): void {
-    const x = Phaser.Math.Between(200, GAME_WIDTH - 200);
-    const y = Phaser.Math.Between(120, this.scene.groundTop - 120);
-    new AutoplayVideo(this.scene, x, y, mult);
+    new AutoplayVideo(
+      this.scene,
+      Phaser.Math.Between(200, GAME_WIDTH - 200),
+      Phaser.Math.Between(120, this.scene.groundTop - 120),
+      mult,
+    );
   }
 
   onEnemyKilled(): void {
+    if (this.waveCompleteTriggered) return;
     this.remaining = Math.max(0, this.remaining - 1);
     this.scene.setEnemiesRemaining(this.remaining);
     if (this.remaining === 0) {
+      this.waveCompleteTriggered = true;
       const isBoss = this.currentWave % 5 === 0;
-      this.scene.time.delayedCall(600, () => {
+      this.scene.time.delayedCall(isBoss ? 1800 : 600, () => {
         this.scene.onWaveComplete(this.currentWave, isBoss ? 4 : 3);
       });
     }

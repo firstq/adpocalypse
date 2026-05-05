@@ -26,6 +26,8 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   protected bodyContainer!: Phaser.GameObjects.Container;
   private flashOverlay!: Phaser.GameObjects.Rectangle;
   private dying = false;
+  /** Set false on boss-summoned minions so their death doesn't trigger wave completion. */
+  public countsAsKill = true;
 
   constructor(
     scene: GameScene,
@@ -78,7 +80,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   protected abstract getBodyWidth(): number;
   protected abstract getBodyHeight(): number;
 
-  private buildHPBar(): void {
+  protected buildHPBar(): void {
     const w = this.getBodyWidth();
     const barW = Math.max(w, 40);
     this.hpBarBg = this.scene.add.rectangle(this.x, this.y - this.getBodyHeight() / 2 - 14, barW, 6, 0x555555).setDepth(10);
@@ -86,7 +88,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.hpBarFill.setOrigin(0.5, 0.5);
   }
 
-  private updateHPBar(): void {
+  protected updateHPBar(): void {
     const bw = Math.max(this.getBodyWidth(), 40);
     const pct = this.hp / this.maxHp;
     const barX = this.x;
@@ -177,11 +179,11 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
       duration: 300,
       ease: 'Power2',
       onComplete: () => {
-        this.hpBarBg.destroy();
-        this.hpBarFill.destroy();
+        this.hpBarBg?.destroy();
+        this.hpBarFill?.destroy();
         this.bodyContainer.destroy();
         this.destroy();
-        this.gameScene.onEnemyDied();
+        if (this.countsAsKill) this.gameScene.onEnemyDied();
       },
     });
 

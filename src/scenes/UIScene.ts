@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, UPGRADE_POOL } from '../config';
 import { HPBar } from '../ui/HPBar';
+import { BossHPBar } from '../ui/BossHPBar';
 import { GameScene, GameState } from './GameScene';
 
 export class UIScene extends Phaser.Scene {
@@ -15,6 +16,7 @@ export class UIScene extends Phaser.Scene {
   private pauseOverlay!: Phaser.GameObjects.Container;
   private paused = false;
   private lastUpgradeCount = -1;
+  private bossBar: BossHPBar | null = null;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -152,6 +154,20 @@ export class UIScene extends Phaser.Scene {
       this.scene.resume('GameScene');
       this.pauseOverlay.setVisible(false);
     }
+  }
+
+  showBossBar(name: string, thresholds: number[], _maxHp: number): void {
+    this.bossBar?.destroy();
+    this.bossBar = new BossHPBar(this, name, thresholds);
+  }
+
+  updateBossBar(hp: number, maxHp: number, phase: number, phaseCount: number): void {
+    this.bossBar?.update(hp, maxHp, phase, phaseCount);
+  }
+
+  hideBossBar(): void {
+    this.bossBar?.destroy();
+    this.bossBar = null;
   }
 
   updateState(state: GameState): void {
