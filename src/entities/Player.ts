@@ -2,12 +2,22 @@ import Phaser from 'phaser';
 import {
   PLAYER_HP, PLAYER_SPEED, PLAYER_MELEE_DAMAGE,
   PLAYER_INVINCIBILITY_MS, PLAYER_ATTACK_DURATION_MS,
-  GAME_WIDTH, COLORS,
+  GAME_WIDTH,
 } from '../config';
 import { InputManager } from '../systems/InputManager';
 import { GameScene } from '../scenes/GameScene';
 
 const SWORD_IDLE_ANGLE = 20;
+
+const HERO = {
+  armor:     0xfbbf24,
+  armorDark: 0xb45309,
+  skin:      0xfde68a,
+  blade:     0xe5e7eb,
+  handle:    0x78350f,
+  outline:   0x1e1b4b,
+  glow:      0xfde047,
+};
 
 interface UpgradeState {
   damageMult: number;
@@ -61,7 +71,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private currentVy = 0;
   private attackTweening = false;
   private cooldownGraphic!: Phaser.GameObjects.Graphics;
+  private glowGraphic!: Phaser.GameObjects.Graphics;
   private attackCooldownStart = 0;
+  private glowPhase = 0;
 
   private swordYOffset = 0;
   private swordTwitchTimer = 0;
@@ -80,6 +92,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setCollideWorldBounds(true);
     body.setGravityY(0);
     body.setSize(32, 56);
+
+    this.glowGraphic = scene.add.graphics();
+    this.glowGraphic.setDepth(3);
 
     this.bodyGraphic = scene.add.graphics();
     this.bodyGraphic.setDepth(5);
@@ -167,31 +182,119 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const g = this.bodyGraphic;
     g.clear();
 
-    g.fillStyle(COLORS.player);
-    g.fillRoundedRect(-14, -20, 28, 40, 5);
+    // Dark outline backdrop (draw oversized shapes in outline color first)
+    g.fillStyle(HERO.outline);
+    g.fillCircle(0, -32, 17);
+    g.fillRoundedRect(-16, -22, 32, 46, 6);
+    g.fillRect(-15, 16, 12, 20);
+    g.fillRect(3, 16, 12, 20);
 
-    g.fillStyle(0xfce4b3);
-    g.fillCircle(0, -32, 15);
-
-    g.fillStyle(0x1a1a2e);
-    const eyeX = this.facingRight ? 5 : -5;
-    g.fillCircle(eyeX, -34, 3);
-    g.fillCircle(eyeX - (this.facingRight ? 6 : -6), -34, 2);
-
-    g.fillStyle(0x2c3e50);
+    // Armored legs (bronze)
+    g.fillStyle(HERO.armorDark);
     g.fillRect(-13, 18, 10, 16);
     g.fillRect(3, 18, 10, 16);
+    g.fillStyle(HERO.armor);  // gold boot shine
+    g.fillRect(-12, 19, 3, 13);
+    g.fillRect(4, 19, 3, 13);
+
+    // Gold armor torso
+    g.fillStyle(HERO.armor);
+    g.fillRoundedRect(-14, -20, 28, 40, 5);
+
+    // Bronze belt
+    g.fillStyle(HERO.armorDark);
+    g.fillRect(-14, 7, 28, 4);
+
+    // Chest V-notch
+    g.beginPath();
+    g.moveTo(0, -11);
+    g.lineTo(-5, -20);
+    g.lineTo(5, -20);
+    g.closePath();
+    g.fillPath();
+
+    // Skin face
+    g.fillStyle(HERO.skin);
+    g.fillCircle(0, -32, 15);
+
+    // Gold helmet (upper half of head)
+    g.fillStyle(HERO.armor);
+    g.beginPath();
+    g.arc(0, -32, 15, Math.PI, 0, true);
+    g.closePath();
+    g.fillPath();
+
+    // Helmet crest
+    g.fillStyle(HERO.armorDark);
+    g.fillRect(-2, -49, 4, 8);
+    g.fillStyle(HERO.armor);
+    g.fillRect(-1, -52, 2, 4);
+
+    // Eyes (stern horizontal dashes, no smiley)
+    g.fillStyle(HERO.outline);
+    const eyeX = this.facingRight ? 4 : -4;
+    const eyeX2 = this.facingRight ? -3 : 3;
+    g.fillRect(eyeX - 1, -35, 5, 2);
+    g.fillRect(eyeX2 - 1, -35, 4, 2);
   }
 
   private drawSword(dimmed = false): void {
     const g = this.swordGraphic;
     g.clear();
-    g.fillStyle(dimmed ? 0x555566 : 0xbdc3c7);
-    g.fillRect(-3, -30, 7, 28);
-    g.fillStyle(dimmed ? 0x3a3a44 : 0x7f8c8d);
-    g.fillRect(-6, -4, 12, 5);
-    g.fillStyle(dimmed ? 0x3d2008 : 0x8B4513);
-    g.fillRect(-2, 1, 5, 10);
+
+    const bladeColor  = dimmed ? 0x666677 : HERO.blade;
+    const guardColor  = dimmed ? 0x3a3a44 : HERO.armor;
+    const handleColor = dimmed ? 0x3d2008 : HERO.handle;
+    const pommelColor = dimmed ? 0x3a3a44 : HERO.armor;
+
+    if (!dimmed) {
+      // Dark outline backdrop
+      g.fillStyle(HERO.outline);
+      g.fillRect(-5, -46, 11, 42);
+      g.fillRect(-10, -8, 20, 8);
+      g.fillRect(-4, 0, 8, 16);
+    }
+
+    // Blade
+    g.fillStyle(bladeColor);
+    g.fillRect(-4, -44, 9, 40);
+    if (!dimmed) {
+      g.fillStyle(0xffffff);  // highlight along leading edge
+      g.fillRect(-4, -44, 2, 40);
+      g.fillStyle(0x9ca3af);  // shadow on trailing edge
+      g.fillRect(3, -44, 2, 40);
+    }
+
+    // Gold cross-guard
+    g.fillStyle(guardColor);
+    g.fillRect(-9, -6, 18, 6);
+    if (!dimmed) {
+      g.fillStyle(0xfde68a);  // guard top shine
+      g.fillRect(-9, -6, 18, 2);
+    }
+
+    // Wrapped handle
+    g.fillStyle(handleColor);
+    g.fillRect(-3, 0, 7, 14);
+    if (!dimmed) {
+      g.fillStyle(0x92400e);  // wrap lines
+      g.fillRect(-3, 3, 7, 2);
+      g.fillRect(-3, 7, 7, 2);
+      g.fillRect(-3, 11, 7, 2);
+    }
+
+    // Pommel
+    g.fillStyle(pommelColor);
+    g.fillRect(-4, 13, 8, 4);
+  }
+
+  private drawGlow(): void {
+    const g = this.glowGraphic;
+    g.clear();
+    this.glowPhase = (this.glowPhase + this.scene.game.loop.delta / 1500) % (Math.PI * 2);
+    const alpha = 0.10 + 0.06 * Math.sin(this.glowPhase);
+    g.fillStyle(HERO.glow, alpha);
+    g.fillCircle(0, -10, 46);
   }
 
   private drawSwing(): void {
@@ -262,6 +365,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.swordTwitchTimer > 0) this.swordTwitchTimer = Math.max(0, this.swordTwitchTimer - delta);
 
     const leanAngle = (this.currentVx / speed) * 5;
+    this.glowGraphic.setPosition(this.x, this.y);
+    this.drawGlow();
     this.bodyGraphic.setPosition(this.x, this.y);
     this.bodyGraphic.setAngle(leanAngle);
     this.drawBody();
@@ -413,6 +518,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   destroy(fromScene?: boolean): void {
+    this.glowGraphic?.destroy();
     this.bodyGraphic?.destroy();
     this.swordGraphic?.destroy();
     this.swingGraphic?.destroy();
