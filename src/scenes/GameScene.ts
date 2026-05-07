@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
+import { Biome1Background } from './background/Biome1Background';
 import { Player } from '../entities/Player';
 import { Enemy } from '../entities/enemies/Enemy';
 import { Coin } from '../entities/Coin';
@@ -30,6 +31,7 @@ export class GameScene extends Phaser.Scene {
   projectiles!: Phaser.GameObjects.Group;
   playerProjectiles!: Phaser.GameObjects.Group;
 
+  private background!: Biome1Background;
   private waveManager!: WaveManager;
   audio!: AudioManager;
   private inputManager!: InputManager;
@@ -70,6 +72,9 @@ export class GameScene extends Phaser.Scene {
 
     this.audio = new AudioManager(this);
     this.inputManager = new InputManager(this);
+
+    this.background = new Biome1Background(this);
+    this.background.create();
 
     this.buildLevel();
 
@@ -194,31 +199,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   private buildLevel(): void {
-    const bg = this.add.graphics();
-    bg.fillGradientStyle(0x0d0d2b, 0x0d0d2b, 0x1a1a3e, 0x1a1a3e, 1);
-    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-    const ground = this.add.graphics();
+    // Ground strip — depth -2 keeps it above decorative background but below status bar (-1)
+    const ground = this.add.graphics().setDepth(-2);
     ground.fillStyle(0x16213e);
     ground.fillRect(0, this.groundY, GAME_WIDTH, GAME_HEIGHT - this.groundY);
     ground.fillStyle(0x0f3460);
     ground.fillRect(0, this.groundY, GAME_WIDTH, 4);
 
-    const grid = this.add.graphics();
-    grid.lineStyle(1, 0x0f3460, 0.3);
-    for (let x = 0; x < GAME_WIDTH; x += 80) {
-      grid.lineBetween(x, 0, x, this.groundY);
-    }
-    for (let y = 0; y < this.groundY; y += 80) {
-      grid.lineBetween(0, y, GAME_WIDTH, y);
-    }
-
     this.physics.world.setBounds(0, 0, GAME_WIDTH, GAME_HEIGHT);
   }
 
-  update(): void {
+  update(time: number, delta: number): void {
     if (this.gameOver) return;
 
+    this.background?.update(time, delta);
     this.inputManager.update();
     this.player.update(this.inputManager);
 
