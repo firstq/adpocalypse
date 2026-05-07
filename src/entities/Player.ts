@@ -63,6 +63,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private cooldownGraphic!: Phaser.GameObjects.Graphics;
   private attackCooldownStart = 0;
 
+  private swordYOffset = 0;
+  private swordTwitchTimer = 0;
+  private ringFlashAlpha = 0;
+  private ringPulseAlpha = 0;
+  private prematureFeedbackTimer = 0;
+
   constructor(scene: GameScene, x: number, y: number) {
     super(scene, x, y, '');
     this.gameScene = scene;
@@ -177,14 +183,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     g.fillRect(3, 18, 10, 16);
   }
 
-  private drawSword(): void {
+  private drawSword(dimmed = false): void {
     const g = this.swordGraphic;
     g.clear();
-    g.fillStyle(0xbdc3c7);
+    g.fillStyle(dimmed ? 0x555566 : 0xbdc3c7);
     g.fillRect(-3, -30, 7, 28);
-    g.fillStyle(0x7f8c8d);
+    g.fillStyle(dimmed ? 0x3a3a44 : 0x7f8c8d);
     g.fillRect(-6, -4, 12, 5);
-    g.fillStyle(0x8B4513);
+    g.fillStyle(dimmed ? 0x3d2008 : 0x8B4513);
     g.fillRect(-2, 1, 5, 10);
   }
 
@@ -243,9 +249,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     this.x = Phaser.Math.Clamp(this.x, 20, GAME_WIDTH - 20);
 
-    if (input.attack && !this.attackCooldown) {
-      this.performAttack();
+    if (input.attack) {
+      if (!this.attackCooldown) {
+        this.performAttack();
+      } else {
+        this.triggerPrematureFeedback();
+      }
     }
+
+    if (this.ringFlashAlpha > 0) this.ringFlashAlpha = Math.max(0, this.ringFlashAlpha - delta / 100);
+    if (this.ringPulseAlpha > 0) this.ringPulseAlpha = Math.max(0, this.ringPulseAlpha - delta / 200);
+    if (this.swordTwitchTimer > 0) this.swordTwitchTimer = Math.max(0, this.swordTwitchTimer - delta);
 
     const leanAngle = (this.currentVx / speed) * 5;
     this.bodyGraphic.setPosition(this.x, this.y);
@@ -253,12 +267,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.drawBody();
 
     const handX = this.facingRight ? -16 : 16;
-    this.swordGraphic.setPosition(this.x + handX, this.y + 2);
+    const twitchX = this.swordTwitchTimer > 0
+      ? (this.facingRight ? 1 : -1) * 4 * Math.sin(Math.PI * (1 - this.swordTwitchTimer / 100))
+      : 0;
+    this.swordGraphic.setPosition(this.x + handX + twitchX, this.y + 2 + this.swordYOffset);
     if (!this.attackTweening) {
       this.swordGraphic.setAngle(this.facingRight ? -SWORD_IDLE_ANGLE : SWORD_IDLE_ANGLE);
     }
-    this.drawSword();
-    this.drawCooldownBar();
+    this.drawSword(this.attackCooldown);
+    this.drawCooldownRing();
 
     this.swingGraphic.setPosition(this.x, this.y);
 
@@ -272,6 +289,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.attackCooldown) return;
     this.isAttacking = true;
     this.attackCooldown = true;
+    this.swordYOffset = 2;
     this.gameScene.audio.playSFX('sfx_attack');
 
     this.gameScene.enemies.getChildren().forEach(e => {
@@ -324,25 +342,62 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const cooldownMs = this.getCooldownMs();
     this.scene.time.delayedCall(cooldownMs, () => {
       this.attackCooldown = false;
+      this.swordYOffset = 0;
+      this.swordGraphic.setScale(1, 0.9);
+      this.scene.tweens.add({
+        targets: this.swordGraphic,
+        scaleY: 1,
+        duration: 200,
+        ease: 'Back.easeOut',
+      });
+      this.ringFlashAlpha = 1;
     });
   }
 
-  private drawCooldownBar(): void {
+  private drawCooldownRing(): void {
     const g = this.cooldownGraphic;
     g.clear();
-    if (!this.attackCooldown) return;
 
-    const elapsed = this.scene.time.now - this.attackCooldownStart;
-    const totalMs = this.getCooldownMs();
-    const progress = Math.min(1, elapsed / totalMs);
-    const maxW = 28;
-    const bx = this.x - maxW / 2;
-    const by = this.y + 38;
+    const rx = this.x;
+    const ry = this.y + 22;
+    const radius = 26;
+    const ringColor = this.upgradeState.cooldownMult < 1 ? 0x3b82f6 : 0x06b6d4;
 
-    g.fillStyle(0x000000, 0.5);
-    g.fillRect(bx, by, maxW, 3);
-    g.fillStyle(0x4ecdc4, 1);
-    g.fillRect(bx, by, maxW * progress, 3);
+    // Background ring (always visible)
+    g.lineStyle(4, 0x334155, 0.4);
+    g.strokeCircle(rx, ry, radius);
+
+    // Progress arc (fills clockwise from top as cooldown progresses)
+    if (this.attackCooldown) {
+      const elapsed = this.scene.time.now - this.attackCooldownStart;
+      const progress = Math.min(1, elapsed / this.getCooldownMs());
+      g.lineStyle(4, ringColor, 0.9);
+      g.beginPath();
+      g.arc(rx, ry, radius, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2, false);
+      g.strokePath();
+    }
+
+    // Flash white when attack becomes ready
+    if (this.ringFlashAlpha > 0) {
+      g.lineStyle(4, 0xffffff, this.ringFlashAlpha);
+      g.strokeCircle(rx, ry, radius);
+    }
+
+    // Premature click pulse
+    if (this.ringPulseAlpha > 0) {
+      g.lineStyle(4, 0xffffff, this.ringPulseAlpha * 0.4);
+      g.strokeCircle(rx, ry, radius);
+    }
+  }
+
+  private triggerPrematureFeedback(): void {
+    const now = this.scene.time.now;
+    if (now - this.prematureFeedbackTimer < 200) return;
+    this.prematureFeedbackTimer = now;
+
+    this.gameScene.audio.playSFX('sfx_attack', { volume: 0.08 });
+    this.swordTwitchTimer = 100;
+    this.ringPulseAlpha = 1;
   }
 
   takeDamage(amount: number): void {

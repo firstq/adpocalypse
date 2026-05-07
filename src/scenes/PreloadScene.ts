@@ -1,6 +1,13 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from '../config';
 
+const ICONS: string[] = [
+  'bomb', 'coin-sack', 'critical-hit', 'damage-boost', 'double-coins',
+  'eagle-eye', 'full-heal', 'gear-up', 'greedy', 'healthy-start',
+  'lifesteal', 'lucky', 'magnet', 'quick-hands', 'quick-snack',
+  'second-wind', 'sharper-steel', 'speed-boost', 'swift-boots', 'tougher-skin',
+];
+
 const SFX: Array<[string, string]> = [
   ['sfx_attack',         'assets/audio/sfx/attack.ogg'],
   ['sfx_hit',            'assets/audio/sfx/hit.ogg'],
@@ -35,6 +42,10 @@ export class PreloadScene extends Phaser.Scene {
 
     for (const [key, path] of SFX) {
       this.load.audio(key, path);
+    }
+
+    for (const name of ICONS) {
+      this.load.svg(`icon-${name}`, `assets/icons/${name}.svg`, { width: 64, height: 64 });
     }
   }
 

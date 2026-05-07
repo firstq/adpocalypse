@@ -29,24 +29,29 @@ export const COLORS = {
   ui: 0xecf0f1,
 };
 
+import { UpgradeCategory } from './ui/categories';
+
 export interface UpgradeDef {
   id: string;
   icon: string;
+  iconKey: string;
+  category: UpgradeCategory;
   label: string;
   description: string;
+  bigNumber: string;
 }
 
 export const UPGRADE_POOL: UpgradeDef[] = [
-  { id: 'hp_boost',     icon: '❤️',  label: '+25 Max HP',      description: 'Increase maximum HP by 25 and heal immediately.' },
-  { id: 'hp_restore',   icon: '💊',  label: 'Full Heal',       description: 'Restore all HP to current maximum.' },
-  { id: 'damage_boost', icon: '⚔️',  label: '+25% Damage',     description: 'All attacks deal 25% more damage.' },
-  { id: 'speed_boost',  icon: '👟',  label: '+20% Speed',      description: 'Move 20% faster.' },
-  { id: 'attack_speed', icon: '⚡',  label: 'Faster Attacks',  description: 'Attack cooldown reduced by 25%.' },
-  { id: 'lifesteal',    icon: '🩸',  label: 'Lifesteal',       description: 'Heal 5 HP each time you kill an enemy.' },
-  { id: 'crit',         icon: '💥',  label: 'Critical Hits',   description: '25% chance to deal double damage.' },
-  { id: 'magnet',       icon: '🧲',  label: 'Coin Magnet',     description: 'Coins fly toward you automatically.' },
-  { id: 'thorns',       icon: '🌵',  label: 'Thorns',          description: 'Reflect 5 damage to enemies that hit you.' },
-  { id: 'regen',        icon: '🌿',  label: 'Regeneration',    description: 'Recover 1 HP every 2 seconds.' },
-  { id: 'double_coins', icon: '💰',  label: 'Double Coins',    description: 'All coin pickups are worth double.' },
-  { id: 'wide_swing',   icon: '🌀',  label: 'Wide Swing',      description: 'Attack arc 30% wider and longer.' },
+  { id: 'hp_boost',     icon: '❤️',  iconKey: 'icon-healthy-start', category: 'defense',  bigNumber: '+25 HP',  label: '+25 Max HP',     description: 'Increase maximum HP by 25 and heal immediately.' },
+  { id: 'hp_restore',   icon: '💊',  iconKey: 'icon-full-heal',     category: 'defense',  bigNumber: 'HEAL',    label: 'Full Heal',      description: 'Restore all HP to current maximum.' },
+  { id: 'damage_boost', icon: '⚔️',  iconKey: 'icon-damage-boost',  category: 'attack',   bigNumber: '+25%',    label: '+25% Damage',    description: 'All attacks deal 25% more damage.' },
+  { id: 'speed_boost',  icon: '👟',  iconKey: 'icon-speed-boost',   category: 'mobility', bigNumber: '+20%',    label: '+20% Speed',     description: 'Move 20% faster.' },
+  { id: 'attack_speed', icon: '⚡',  iconKey: 'icon-quick-hands',   category: 'attack',   bigNumber: '-25%',    label: 'Faster Attacks', description: 'Attack cooldown reduced by 25%.' },
+  { id: 'lifesteal',    icon: '🩸',  iconKey: 'icon-lifesteal',     category: 'defense',  bigNumber: '+5 HP',   label: 'Lifesteal',      description: 'Heal 5 HP each time you kill an enemy.' },
+  { id: 'crit',         icon: '💥',  iconKey: 'icon-critical-hit',  category: 'attack',   bigNumber: '25%',     label: 'Critical Hits',  description: '25% chance to deal double damage.' },
+  { id: 'magnet',       icon: '🧲',  iconKey: 'icon-magnet',        category: 'mobility', bigNumber: 'AUTO',    label: 'Coin Magnet',    description: 'Coins fly toward you automatically.' },
+  { id: 'thorns',       icon: '🌵',  iconKey: 'icon-tougher-skin',  category: 'defense',  bigNumber: '5 DMG',   label: 'Thorns',         description: 'Reflect 5 damage to enemies that hit you.' },
+  { id: 'regen',        icon: '🌿',  iconKey: 'icon-second-wind',   category: 'defense',  bigNumber: '+1 HP',   label: 'Regeneration',   description: 'Recover 1 HP every 2 seconds.' },
+  { id: 'double_coins', icon: '💰',  iconKey: 'icon-double-coins',  category: 'economy',  bigNumber: '×2',      label: 'Double Coins',   description: 'All coin pickups are worth double.' },
+  { id: 'wide_swing',   icon: '🌀',  iconKey: 'icon-sharper-steel', category: 'attack',   bigNumber: '+30%',    label: 'Wide Swing',     description: 'Attack arc 30% wider and longer.' },
 ];

@@ -1,9 +1,14 @@
+import { UpgradeCategory } from '../ui/categories';
+
 export type ShopRarity = 'consumable' | 'upgrade' | 'rare';
 
 export interface ShopItem {
   id: string;
   name: string;
   icon: string;
+  iconKey: string;
+  category: UpgradeCategory;
+  bigNumber: string;
   description: string;
   cost: number;
   rarity: ShopRarity;
@@ -12,26 +17,26 @@ export interface ShopItem {
 
 export const SHOP_ITEMS: ShopItem[] = [
   // ── Consumables ──────────────────────────────────────────
-  { id: 'small_potion',     name: 'Small Potion',    icon: '🫙', description: 'Restore 15 HP instantly',                          cost:  12, rarity: 'consumable' },
-  { id: 'coin_sack',        name: 'Coin Sack',       icon: '💵', description: 'Gain 20 coins immediately',                        cost:  15, rarity: 'consumable' },
-  { id: 'quick_snack',      name: 'Quick Snack',     icon: '🍏', description: '+5 max HP and restore to full health',             cost:  20, rarity: 'consumable' },
-  { id: 'health_potion',    name: 'Health Potion',   icon: '🧪', description: 'Restore 30 HP instantly',                          cost:  25, rarity: 'consumable' },
-  { id: 'full_heal',        name: 'Full Heal',        icon: '💊', description: 'Restore HP to maximum',                           cost:  75, rarity: 'consumable' },
-  { id: 'coin_magnet_shop', name: 'Coin Magnet',      icon: '🧲', description: 'Auto-collect coins for the rest of this run',     cost:  40, rarity: 'consumable' },
-  { id: 'time_slow',        name: 'Time Slow',        icon: '🕐', description: 'Enemies move 30% slower next wave',              cost:  60, rarity: 'consumable', isPending: true },
-  { id: 'bomb',             name: 'Bomb',             icon: '💣', description: 'Deal 50 damage to all enemies at wave start',     cost:  50, rarity: 'consumable', isPending: true },
+  { id: 'small_potion',     name: 'Small Potion',   icon: '🫙', iconKey: 'icon-quick-snack',    category: 'defense',  bigNumber: '+15 HP',  description: 'Restore 15 HP instantly',                        cost:  12, rarity: 'consumable' },
+  { id: 'coin_sack',        name: 'Coin Sack',      icon: '💵', iconKey: 'icon-coin-sack',      category: 'economy',  bigNumber: '+20 🪙',  description: 'Gain 20 coins immediately',                      cost:  15, rarity: 'consumable' },
+  { id: 'quick_snack',      name: 'Quick Snack',    icon: '🍏', iconKey: 'icon-quick-snack',    category: 'defense',  bigNumber: '+5 HP',   description: '+5 max HP and restore to full health',           cost:  20, rarity: 'consumable' },
+  { id: 'health_potion',    name: 'Health Potion',  icon: '🧪', iconKey: 'icon-full-heal',      category: 'defense',  bigNumber: '+30 HP',  description: 'Restore 30 HP instantly',                        cost:  25, rarity: 'consumable' },
+  { id: 'full_heal',        name: 'Full Heal',      icon: '💊', iconKey: 'icon-full-heal',      category: 'defense',  bigNumber: 'FULL',    description: 'Restore HP to maximum',                         cost:  75, rarity: 'consumable' },
+  { id: 'coin_magnet_shop', name: 'Coin Magnet',    icon: '🧲', iconKey: 'icon-magnet',         category: 'mobility', bigNumber: 'AUTO',    description: 'Auto-collect coins for the rest of this run',   cost:  40, rarity: 'consumable' },
+  { id: 'time_slow',        name: 'Time Slow',      icon: '🕐', iconKey: 'icon-eagle-eye',      category: 'special',  bigNumber: '-30%',    description: 'Enemies move 30% slower next wave',             cost:  60, rarity: 'consumable', isPending: true },
+  { id: 'bomb',             name: 'Bomb',           icon: '💣', iconKey: 'icon-bomb',           category: 'special',  bigNumber: '50 DMG',  description: 'Deal 50 damage to all enemies at wave start',   cost:  50, rarity: 'consumable', isPending: true },
   // ── Permanent run upgrades ────────────────────────────────
-  { id: 'damage_boost_shop',  name: 'Damage Boost',  icon: '⚔️', description: '+10% melee damage for this run',                 cost: 100, rarity: 'upgrade' },
-  { id: 'hp_boost_shop',      name: 'HP Boost',      icon: '❤️', description: '+20 max HP and heal that amount',                cost: 100, rarity: 'upgrade' },
-  { id: 'speed_boost_shop',   name: 'Speed Boost',   icon: '👟', description: '+8% movement speed',                             cost:  90, rarity: 'upgrade' },
-  { id: 'attack_speed_shop',  name: 'Quick Hands',   icon: '⚡', description: '+10% attack speed',                              cost: 110, rarity: 'upgrade' },
-  { id: 'lucky_coins',        name: 'Lucky Coins',   icon: '🍀', description: '+1 extra coin dropped per enemy kill',           cost: 125, rarity: 'upgrade' },
-  { id: 'gear_up',            name: 'Gear Up',       icon: '⚙️', description: '+2% gear drop chance this run',                  cost: 200, rarity: 'upgrade' },
+  { id: 'damage_boost_shop',  name: 'Damage Boost', icon: '⚔️', iconKey: 'icon-damage-boost',  category: 'attack',   bigNumber: '+10%',    description: '+10% melee damage for this run',               cost: 100, rarity: 'upgrade' },
+  { id: 'hp_boost_shop',      name: 'HP Boost',     icon: '❤️', iconKey: 'icon-healthy-start', category: 'defense',  bigNumber: '+20 HP',  description: '+20 max HP and heal that amount',              cost: 100, rarity: 'upgrade' },
+  { id: 'speed_boost_shop',   name: 'Speed Boost',  icon: '👟', iconKey: 'icon-speed-boost',   category: 'mobility', bigNumber: '+8%',     description: '+8% movement speed',                          cost:  90, rarity: 'upgrade' },
+  { id: 'attack_speed_shop',  name: 'Quick Hands',  icon: '⚡', iconKey: 'icon-quick-hands',   category: 'attack',   bigNumber: '+10%',    description: '+10% attack speed',                           cost: 110, rarity: 'upgrade' },
+  { id: 'lucky_coins',        name: 'Lucky Coins',  icon: '🍀', iconKey: 'icon-lucky',         category: 'economy',  bigNumber: '+1 🪙',   description: '+1 extra coin dropped per enemy kill',         cost: 125, rarity: 'upgrade' },
+  { id: 'gear_up',            name: 'Gear Up',      icon: '⚙️', iconKey: 'icon-gear-up',       category: 'economy',  bigNumber: '+2%',     description: '+2% gear drop chance this run',               cost: 200, rarity: 'upgrade' },
   // ── Rare ─────────────────────────────────────────────────
-  { id: 'vampire_blade',    name: 'Vampire Blade',    icon: '🩸', description: 'Heal 5 HP each time you kill an enemy',          cost: 250, rarity: 'rare' },
-  { id: 'thorns_shop',      name: 'Thorns Armor',     icon: '🌵', description: 'Enemies take 8 damage when they hit you',        cost: 225, rarity: 'rare' },
-  { id: 'double_strike',    name: 'Double Strike',    icon: '💢', description: '20% chance each swing hits twice',               cost: 300, rarity: 'rare' },
-  { id: 'phoenix_feather',  name: 'Phoenix Feather',  icon: '🔥', description: 'Auto-revive once this run at 50% HP',           cost: 400, rarity: 'rare' },
+  { id: 'vampire_blade',   name: 'Vampire Blade',   icon: '🩸', iconKey: 'icon-lifesteal',     category: 'defense',  bigNumber: '+5 HP',   description: 'Heal 5 HP each time you kill an enemy',        cost: 250, rarity: 'rare' },
+  { id: 'thorns_shop',     name: 'Thorns Armor',    icon: '🌵', iconKey: 'icon-tougher-skin',  category: 'defense',  bigNumber: '8 DMG',   description: 'Enemies take 8 damage when they hit you',      cost: 225, rarity: 'rare' },
+  { id: 'double_strike',   name: 'Double Strike',   icon: '💢', iconKey: 'icon-critical-hit',  category: 'attack',   bigNumber: '20%',     description: '20% chance each swing hits twice',             cost: 300, rarity: 'rare' },
+  { id: 'phoenix_feather', name: 'Phoenix Feather', icon: '🔥', iconKey: 'icon-second-wind',   category: 'special',  bigNumber: 'REVIVE',  description: 'Auto-revive once this run at 50% HP',          cost: 400, rarity: 'rare' },
 ];
 
 function shuffle<T>(arr: T[]): T[] {
