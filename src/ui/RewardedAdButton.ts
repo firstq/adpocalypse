@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { t } from '../i18n';
+import { fitTextToWidth } from './textFit';
 
 export interface RewardedAdConfig {
   rewardLabel: string;
@@ -116,6 +117,11 @@ export class RewardedAdButton extends Phaser.GameObjects.Container {
       color: '#fde047',
     }).setOrigin(0, 0.5);
     this.add(this.rewardTxt);
+
+    // Shrink text to fit available width (right edge minus 12px padding)
+    const maxTextW = hw - textLeft - 12;
+    fitTextToWidth(this.subtitleTxt, { maxWidth: maxTextW, minFontSize: 10 });
+    fitTextToWidth(this.rewardTxt,   { maxWidth: maxTextW, minFontSize: 11 });
 
     // Pointer events
     hit.on('pointerover', () => {
