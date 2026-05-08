@@ -82,12 +82,42 @@ export abstract class Boss extends Enemy {
       this.phase = newPhase;
       this.phaseTransitioning = true;
       this.showPhaseFlash(newPhase);
-      // Brief pause before new phase behaviour activates
+      this.showImmunityPulse();
       this.scene.time.delayedCall(1100, () => {
         this.phaseTransitioning = false;
         if (this.active) this.onPhaseChange(newPhase);
       });
     }
+  }
+
+  private showImmunityPulse(): void {
+    const PULSES = 5;
+    const PERIOD = 220; // ms per flash cycle
+
+    // Rapid white flash on the boss body to signal "immune"
+    this.scene.tweens.add({
+      targets: this.bodyContainer,
+      alpha: 0.25,
+      duration: PERIOD / 2,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: PULSES - 1,
+      onComplete: () => {
+        if (this.active) this.bodyContainer.setAlpha(1);
+      },
+    });
+
+    // Expanding shield ring around the boss
+    const ring = this.scene.add.circle(this.x, this.y, 55, 0xffffff, 0).setDepth(40)
+      .setStrokeStyle(3, 0xffd700);
+    this.scene.tweens.add({
+      targets: ring,
+      scaleX: 1.8, scaleY: 1.8,
+      alpha: 0,
+      duration: 1000,
+      ease: 'Power2',
+      onComplete: () => ring.destroy(),
+    });
   }
 
   private showPhaseFlash(phase: number): void {

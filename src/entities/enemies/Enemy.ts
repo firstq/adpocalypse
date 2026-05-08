@@ -8,6 +8,7 @@ export interface EnemyMultipliers {
   hp?: number;
   speed?: number;
   damage?: number;
+  premium?: boolean;
 }
 
 export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
@@ -19,6 +20,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   readonly coinDrop: number;
   readonly knockback: number;
   hitThisSwing: boolean = false;
+  private premiumEnemy = false;
 
   protected gameScene: GameScene;
   private hpBarBg!: Phaser.GameObjects.Rectangle;
@@ -47,6 +49,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     const hm = mult.hp ?? 1;
     const sm = mult.speed ?? 1;
     const dm = mult.damage ?? 1;
+    this.premiumEnemy = mult.premium ?? false;
 
     this.hp = Math.round(hp * hm);
     this.maxHp = this.hp;
@@ -74,6 +77,10 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.bodyContainer.add(this.flashOverlay);
 
     this.buildHPBar();
+
+    if (this.premiumEnemy) {
+      this.applyPremiumVisual();
+    }
   }
 
   protected abstract buildBody(): void;
@@ -144,6 +151,24 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.y += (dy / len) * force;
   }
 
+  private applyPremiumVisual(): void {
+    const w = this.getBodyWidth() + 10;
+    const h = this.getBodyHeight() + 10;
+    const border = this.scene.add.rectangle(0, 0, w, h, 0xffd700, 0)
+      .setStrokeStyle(3, 0xffd700);
+    this.bodyContainer.addAt(border, 0);
+
+    // Pulse the gold border
+    this.scene.tweens.add({
+      targets: border,
+      alpha: 0.45,
+      duration: 550,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+  }
+
   protected getGearDrop(): number { return 0; }
 
   protected die(): void {
@@ -152,7 +177,8 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
     (this.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
 
     const bonusCoin = this.gameScene.player?.upgradeState?.bonusCoinDrop ?? 0;
-    for (let i = 0; i < this.coinDrop + bonusCoin; i++) {
+    const drops = (this.premiumEnemy ? this.coinDrop * 2 : this.coinDrop) + bonusCoin;
+    for (let i = 0; i < drops; i++) {
       const ox = Phaser.Math.Between(-20, 20);
       const oy = Phaser.Math.Between(-20, 20);
       new Coin(this.gameScene, this.x + ox, this.y + oy);

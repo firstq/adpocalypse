@@ -91,15 +91,16 @@ export class WaveManager {
     const cycle = Math.floor((bossIndex - 1) / 3);       // 0, 0, 0, 1, 1…
 
     const cx = GAME_WIDTH / 2;
+    const bossHP = (base: number) => Math.round(base * (1 + cycle * 1.5));
     switch (bossType) {
       case 0:
-        new AlgorithmBoss(this.scene, cx, 200, 300 + 150 * cycle, waveNumber);
+        new AlgorithmBoss(this.scene, cx, 200, bossHP(300), waveNumber);
         break;
       case 1:
-        new SpamBoss(this.scene, cx, 170, 400 + 200 * cycle, waveNumber);
+        new SpamBoss(this.scene, cx, 170, bossHP(400), waveNumber);
         break;
       case 2:
-        new ScrollBoss(this.scene, cx, 200, 500 + 250 * cycle, waveNumber);
+        new ScrollBoss(this.scene, cx, 200, bossHP(500), waveNumber);
         break;
     }
   }
@@ -183,6 +184,14 @@ export class WaveManager {
     });
   }
 
+  /** Returns mult with premium=true if the wave/RNG check passes (wave ≥ 20, 5% + 5%/wave, max 30%). */
+  private maybeApplyPremium(mult: EnemyMultipliers, wave: number): EnemyMultipliers {
+    if (wave < 20) return mult;
+    const chance = Math.min(0.90, 0.05 + (wave - 20) * 0.05);
+    if (Math.random() >= chance) return mult;
+    return { ...mult, hp: (mult.hp ?? 1) * 2, damage: (mult.damage ?? 1) * 1.5, premium: true };
+  }
+
   private randomEdgeX(): number {
     return Math.random() > 0.5
       ? Phaser.Math.Between(20, 100)
@@ -190,19 +199,19 @@ export class WaveManager {
   }
 
   private spawnPopupClose(mult: EnemyMultipliers): void {
-    new PopupClose(this.scene, this.randomEdgeX(), Phaser.Math.Between(80, this.scene.groundTop - 40), mult);
+    new PopupClose(this.scene, this.randomEdgeX(), Phaser.Math.Between(80, this.scene.groundTop - 40), this.maybeApplyPremium(mult, this.currentWave));
   }
 
   private spawnCookieBanner(mult: EnemyMultipliers): void {
-    new CookieBanner(this.scene, this.randomEdgeX(), this.scene.groundTop - 27, mult);
+    new CookieBanner(this.scene, this.randomEdgeX(), this.scene.groundTop - 27, this.maybeApplyPremium(mult, this.currentWave));
   }
 
   private spawnPremiumPopup(mult: EnemyMultipliers): void {
-    new PremiumPopup(this.scene, this.randomEdgeX(), Phaser.Math.Between(100, this.scene.groundTop - 100), mult);
+    new PremiumPopup(this.scene, this.randomEdgeX(), Phaser.Math.Between(100, this.scene.groundTop - 100), this.maybeApplyPremium(mult, this.currentWave));
   }
 
   private spawnSpamEmail(mult: EnemyMultipliers): void {
-    new SpamEmail(this.scene, this.randomEdgeX(), Phaser.Math.Between(80, this.scene.groundTop - 40), mult);
+    new SpamEmail(this.scene, this.randomEdgeX(), Phaser.Math.Between(80, this.scene.groundTop - 40), this.maybeApplyPremium(mult, this.currentWave));
   }
 
   private spawnAutoplayVideo(mult: EnemyMultipliers): void {
@@ -210,7 +219,7 @@ export class WaveManager {
       this.scene,
       Phaser.Math.Between(200, GAME_WIDTH - 200),
       Phaser.Math.Between(120, this.scene.groundTop - 120),
-      mult,
+      this.maybeApplyPremium(mult, this.currentWave),
     );
   }
 
