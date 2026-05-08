@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { saveManager } from './sdk';
 
 interface AudioSettings {
   muted: boolean;
@@ -36,6 +37,7 @@ export class AudioManager {
     try {
       const s: AudioSettings = { muted: this.scene.sound.mute, sfxVolume: this.sfxVolume };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+      saveManager.scheduleSave();
     } catch { /* ignore */ }
   }
 

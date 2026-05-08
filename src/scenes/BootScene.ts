@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { initSDK } from '../systems/sdk';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -6,6 +7,15 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Kick off async SDK init; transition to PreloadScene when done (or on error)
+    this.initAsync().catch((err: unknown) => {
+      console.error('[BootScene] SDK init error:', err);
+      this.scene.start('PreloadScene');
+    });
+  }
+
+  private async initAsync(): Promise<void> {
+    await initSDK();
     this.scene.start('PreloadScene');
   }
 }

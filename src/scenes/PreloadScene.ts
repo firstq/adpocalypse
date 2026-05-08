@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, COLORS } from '../config';
+import { sdkInstance } from '../systems/sdk';
 
 const ICONS: string[] = [
   'bomb', 'coin-sack', 'critical-hit', 'damage-boost', 'double-coins',
@@ -50,6 +51,8 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Tell Yandex the game is ready — hides the platform loader spinner
+    sdkInstance.notifyGameReady();
     this.scene.start('MenuScene');
   }
 }

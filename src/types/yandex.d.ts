@@ -1,0 +1,68 @@
+// Ambient declarations for the Yandex Games SDK global.
+// This file has no imports so all declarations are global (ambient module).
+// The SDK script is loaded via <script src="/sdk.js"> — only present on Yandex's platform.
+
+declare const YaGames: YaGamesFactory | undefined;
+
+interface YaGamesFactory {
+  init(): Promise<YandexGamesSDKInstance>;
+}
+
+interface YandexGamesSDKInstance {
+  features: {
+    LoadingAPI?: { ready(): void };
+  };
+  adv: {
+    showFullscreenAdv(params: { callbacks: YandexFullscreenCallbacks }): void;
+    showRewardedVideo(params: { callbacks: YandexRewardedCallbacks }): void;
+  };
+  getPlayer(params?: { scopes: boolean }): Promise<YandexPlayer>;
+  auth: {
+    openAuthDialog(): Promise<void>;
+  };
+  getLeaderboards(): Promise<YandexLeaderboards>;
+}
+
+interface YandexFullscreenCallbacks {
+  onOpen?: () => void;
+  onClose?: (wasShown: boolean) => void;
+  onError?: (error: Error) => void;
+  onOffline?: () => void;
+}
+
+interface YandexRewardedCallbacks {
+  onOpen?: () => void;
+  onRewarded?: () => void;
+  onClose?: () => void;
+  onError?: (error: Error) => void;
+}
+
+interface YandexPlayer {
+  getID(): string;
+  getName(): string;
+  /** Returns 'lite' when the player is not authenticated. */
+  getMode(): string;
+  getData(keys?: string[]): Promise<Record<string, unknown>>;
+  setData(data: Record<string, unknown>, flush?: boolean): Promise<void>;
+}
+
+interface YandexLeaderboards {
+  setLeaderboardScore(name: string, score: number, extraData?: string): Promise<void>;
+  getLeaderboardEntries(name: string, params?: {
+    includeUser?: boolean;
+    quantityAround?: number;
+    quantityTop?: number;
+  }): Promise<YandexLeaderboardResult>;
+}
+
+interface YandexLeaderboardResult {
+  leaderboard: { name: string };
+  userRank: number;
+  entries: YandexLeaderboardEntry[];
+}
+
+interface YandexLeaderboardEntry {
+  score: number;
+  rank: number;
+  player: { publicName: string };
+}

@@ -1,4 +1,5 @@
 import { UpgradeCategory } from '../ui/categories';
+import { saveManager } from './sdk';
 
 const GEAR_KEY = 'adpocalypse_gears';
 const META_KEY = 'adpocalypse_meta_upgrades';
@@ -55,12 +56,14 @@ export const MetaProgress = {
 
   addGears(n: number): void {
     safeWrite(GEAR_KEY, this.getGears() + n);
+    saveManager.scheduleSave();
   },
 
   spendGears(n: number): boolean {
     const have = this.getGears();
     if (have < n) return false;
     safeWrite(GEAR_KEY, have - n);
+    saveManager.scheduleSave();
     return true;
   },
 
@@ -86,6 +89,7 @@ export const MetaProgress = {
     const levels = this.getLevels();
     levels[id] = (levels[id] ?? 0) + 1;
     safeWrite(META_KEY, levels);
+    saveManager.scheduleSave();
     return true;
   },
 
@@ -95,6 +99,7 @@ export const MetaProgress = {
 
   markWorkshopVisited(): void {
     safeWrite(WORKSHOP_VISITED_KEY, true);
+    saveManager.scheduleSave();
   },
 
   resetAll(): void {

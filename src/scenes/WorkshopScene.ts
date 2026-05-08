@@ -2,6 +2,10 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import { MetaProgress, META_UPGRADE_DEFS } from '../systems/MetaProgress';
 import { UpgradeCard } from '../ui/UpgradeCard';
+import { adManager } from '../systems/sdk';
+
+// Once per browser session
+let workshopRewardUsedThisSession = false;
 
 const CARD_W = 280;
 const CARD_H = 280;
@@ -54,6 +58,33 @@ export class WorkshopScene extends Phaser.Scene {
       fontFamily: 'Arial',
       color: '#aaaacc',
     }).setOrigin(0.5, 0);
+
+    // Rewarded ad: +5 gears (once per session)
+    if (!workshopRewardUsedThisSession) {
+      const adBtn = this.add.text(GAME_WIDTH - 16, 62, '▶ AD: +5 ⚙', {
+        fontSize: '14px',
+        fontFamily: 'Arial Black, Arial',
+        color: '#10b981',
+      }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+
+      adBtn.on('pointerover', () => adBtn.setColor('#ffffff'));
+      adBtn.on('pointerout',  () => adBtn.setColor('#10b981'));
+      adBtn.on('pointerdown', () => {
+        if (workshopRewardUsedThisSession) return;
+        adBtn.disableInteractive().setText('Loading...');
+        void adManager.showRewarded().then(rewarded => {
+          if (rewarded) {
+            workshopRewardUsedThisSession = true;
+            MetaProgress.addGears(5);
+            this.gearsText.setText(this.gearsLabel());
+            adBtn.setText('✓ +5 ⚙ added');
+            this.rebuildCards();
+          } else {
+            adBtn.setInteractive({ useHandCursor: true }).setText('▶ AD: +5 ⚙');
+          }
+        });
+      });
+    }
 
     // Cards container (scrollable)
     this.cardsContainer = this.add.container(0, 0);

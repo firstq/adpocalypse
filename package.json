@@ -6,6 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:itch": "tsc && vite build && cd dist && zip -r ../adpocalypse-itch.zip .",
+    "build:yandex": "tsc && vite build && cd dist && zip -r ../adpocalypse-yandex.zip .",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts"
   },

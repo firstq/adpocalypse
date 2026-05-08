@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import { Biome1Background } from './background/Biome1Background';
 import { Player } from '../entities/Player';
+import { adManager, saveManager, sdkInstance } from '../systems/sdk';
 import { Enemy } from '../entities/enemies/Enemy';
 import { Coin } from '../entities/Coin';
 import { Gear } from '../entities/Gear';
@@ -10,6 +11,9 @@ import { AudioManager } from '../systems/AudioManager';
 import { InputManager } from '../systems/InputManager';
 import { Projectile } from '../entities/Projectile';
 import { MetaProgress } from '../systems/MetaProgress';
+
+// Persists across GameScene restarts within one browser session
+let loginPromptShownThisSession = false;
 
 export interface GameState {
   coins: number;
@@ -36,6 +40,11 @@ export class GameScene extends Phaser.Scene {
   audio!: AudioManager;
   private inputManager!: InputManager;
 
+  private waveCoinsEarned = 0;
+  private adContinueUsed = false;
+  private gameOverOverlay: Phaser.GameObjects.Rectangle | null = null;
+  private debugPanel: Phaser.GameObjects.Container | null = null;
+
   private gameState!: GameState;
   private gameOver = false;
   private hitstopActive = false;
@@ -55,6 +64,10 @@ export class GameScene extends Phaser.Scene {
     this.gameOver = false;
     this.currentWave = 1;
     this.gearsThisRun = 0;
+    this.waveCoinsEarned = 0;
+    this.adContinueUsed = false;
+    this.gameOverOverlay = null;
+    this.debugPanel = null;
 
     const bestWave = parseInt(localStorage.getItem('bestWave') || '0');
 
@@ -150,6 +163,13 @@ export class GameScene extends Phaser.Scene {
     }
     this.scene.launch('UIScene');
     this.updateUI();
+
+    // Debug overlay: Ctrl+Shift+D
+    this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.code === 'KeyD') {
+        this.toggleDebugOverlay();
+      }
+    });
   }
 
   private applyMetaUpgrades(): void {
@@ -423,9 +443,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   collectCoin(coin: Coin): void {
-    this.gameState.coins += Math.round(coin.value * this.player.upgradeState.coinMult);
+    const earned = Math.round(coin.value * this.player.upgradeState.coinMult);
+    this.gameState.coins += earned;
+    this.waveCoinsEarned += earned;
     coin.destroy();
     this.audio.playSFX('sfx_coin_pickup', { detune: Phaser.Math.Between(-100, 100) });
+    this.updateUI();
+  }
+
+  addCoins(amount: number): void {
+    this.gameState.coins += amount;
     this.updateUI();
   }
 
@@ -485,12 +512,25 @@ export class GameScene extends Phaser.Scene {
 
     this.updateUI();
 
+    // Store coins earned this wave for the double-coins rewarded ad in UpgradeScene
+    this.registry.set('upgradeWaveCoins', this.waveCoinsEarned);
+
     this.time.delayedCall(800, () => {
       if (this.gameOver) return;
-
       const isBossWave = waveNumber % 5 === 0;
       const isShopWave = waveNumber % 3 === 0 && !isBossWave;
+      this.triggerWaveTransition(isBossWave, isShopWave, upgradeCards, nextWave, waveNumber);
+    });
+  }
 
+  private triggerWaveTransition(
+    isBossWave: boolean,
+    isShopWave: boolean,
+    upgradeCards: number,
+    nextWave: number,
+    waveNumber: number,
+  ): void {
+    const doTransition = () => {
       if (isShopWave) {
         this.registry.set('shopNextWave', nextWave);
         this.scene.pause();
@@ -501,7 +541,19 @@ export class GameScene extends Phaser.Scene {
         this.scene.pause();
         this.scene.launch('UpgradeScene');
       }
-    });
+    };
+
+    // Show interstitial after every 3rd non-boss wave (shop waves)
+    if (waveNumber % 3 === 0 && !isBossWave) {
+      const wasMuted = this.sound.mute;
+      this.sound.setMute(true);
+      void adManager.showInterstitial().then(() => {
+        this.sound.setMute(wasMuted);
+        doTransition();
+      });
+    } else {
+      doTransition();
+    }
   }
 
   private showBonusGears(n: number): void {
@@ -546,6 +598,7 @@ export class GameScene extends Phaser.Scene {
   setWave(wave: number): void {
     this.currentWave = wave;
     this.gameState.wave = wave;
+    this.waveCoinsEarned = 0;
     this.updateUI();
   }
 
@@ -573,9 +626,17 @@ export class GameScene extends Phaser.Scene {
     // Persist gears earned this run
     MetaProgress.addGears(this.gearsThisRun);
 
-    const overlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0).setDepth(100);
+    // Save progress to cloud
+    void saveManager.flush();
+
+    // Submit leaderboard score on new record
+    if (isNewRecord) {
+      void sdkInstance.submitLeaderboardScore('best_wave', reached);
+    }
+
+    this.gameOverOverlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0).setDepth(100);
     this.tweens.add({
-      targets: overlay,
+      targets: this.gameOverOverlay,
       alpha: 0.7,
       duration: 400,
       onComplete: () => this.buildGameOverPanel(reached, best, isNewRecord),
@@ -663,7 +724,31 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    const tryAgainBtn = this.add.text(0, 80, '[ TRY AGAIN ]', {
+    // Watch Ad to Continue — only if not used this run
+    const continueItems: Phaser.GameObjects.GameObject[] = [];
+    if (!this.adContinueUsed) {
+      const continueBg = this.add.rectangle(0, 52, 290, 30, 0x1a4a3a).setStrokeStyle(1, 0x10b981);
+      const continueBtn = this.add.text(0, 52, '▶ WATCH AD TO CONTINUE', {
+        fontSize: '14px',
+        fontFamily: 'Arial Black, Arial',
+        color: '#10b981',
+      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+      continueBtn.on('pointerover', () => continueBtn.setColor('#ffffff'));
+      continueBtn.on('pointerout', () => continueBtn.setColor('#10b981'));
+      continueBtn.on('pointerdown', () => {
+        continueBtn.disableInteractive().setText('Loading...');
+        void adManager.showRewarded().then(rewarded => {
+          if (rewarded) {
+            this.doAdContinue(panel);
+          } else {
+            continueBtn.setInteractive({ useHandCursor: true }).setText('▶ WATCH AD TO CONTINUE');
+          }
+        });
+      });
+      continueItems.push(continueBg, continueBtn);
+    }
+
+    const tryAgainBtn = this.add.text(0, 90, '[ TRY AGAIN ]', {
       fontSize: '34px',
       fontFamily: 'Arial Black, Arial',
       color: '#4ecdc4',
@@ -673,11 +758,19 @@ export class GameScene extends Phaser.Scene {
 
     tryAgainBtn.on('pointerover', () => tryAgainBtn.setColor('#ffffff'));
     tryAgainBtn.on('pointerout', () => tryAgainBtn.setColor('#4ecdc4'));
-    tryAgainBtn.on('pointerdown', () => this.scene.start('GameScene'));
+    tryAgainBtn.on('pointerdown', () => {
+      tryAgainBtn.disableInteractive().setText('...');
+      const wasMuted = this.sound.mute;
+      this.sound.setMute(true);
+      void adManager.showInterstitial().then(() => {
+        this.sound.setMute(wasMuted);
+        this.scene.start('GameScene');
+      });
+    });
 
     // Workshop button (pulsing glow if player has unspent gears)
-    const workshopGlowRect = this.add.rectangle(0, 135, 260, 46, 0xffaa00, 0);
-    const workshopBtn = this.add.text(0, 135, '[ ⚙ VISIT WORKSHOP ]', {
+    const workshopGlowRect = this.add.rectangle(0, 148, 260, 46, 0xffaa00, 0);
+    const workshopBtn = this.add.text(0, 148, '[ ⚙ VISIT WORKSHOP ]', {
       fontSize: '26px',
       fontFamily: 'Arial Black, Arial',
       color: '#ffcc66',
@@ -703,7 +796,7 @@ export class GameScene extends Phaser.Scene {
       this.scene.start('WorkshopScene');
     });
 
-    const menuBtn = this.add.text(0, 190, '[ MAIN MENU ]', {
+    const menuBtn = this.add.text(0, 202, '[ MAIN MENU ]', {
       fontSize: '22px',
       fontFamily: 'Arial',
       color: '#888888',
@@ -716,7 +809,7 @@ export class GameScene extends Phaser.Scene {
     // First-time workshop nudge
     const firstTime = !MetaProgress.hasVisitedWorkshop() && gearsEarned > 0;
     const nudge = firstTime
-      ? this.add.text(0, 222, '↑ Spend your gears here to grow stronger!', {
+      ? this.add.text(0, 234, '↑ Spend your gears here to grow stronger!', {
           fontSize: '13px',
           fontFamily: 'Arial',
           color: '#ffaa44',
@@ -727,10 +820,13 @@ export class GameScene extends Phaser.Scene {
       glow, bg,
       title, waveText, recordText, coinsText, upgradesText,
       sep, gearsText, totalText,
+      ...continueItems,
       tryAgainBtn,
       workshopGlowRect, workshopBtn, menuBtn,
       nudge,
     ]);
+
+    this.maybeShowLoginPrompt(panel, reached, isNewRecord);
 
     panel.setScale(0.85).setAlpha(0);
     this.tweens.add({
@@ -741,6 +837,86 @@ export class GameScene extends Phaser.Scene {
       duration: 300,
       ease: 'Back.easeOut',
     });
+  }
+
+  private doAdContinue(panel: Phaser.GameObjects.Container): void {
+    this.adContinueUsed = true;
+    this.gameOver = false;
+    this.player.hp = this.player.maxHp;
+    this.gameState.hp = this.player.maxHp;
+
+    // Clear all enemies and projectiles
+    [...this.enemies.getChildren()].forEach(e => e.destroy());
+    [...this.projectiles.getChildren()].forEach(p => p.destroy());
+
+    this.physics.world.resume();
+    this.gameOverOverlay?.destroy();
+    this.gameOverOverlay = null;
+    panel.destroy();
+
+    if (!this.scene.isActive('UIScene')) {
+      this.scene.launch('UIScene');
+    }
+    this.updateUI();
+    this.waveManager.startWave(this.currentWave);
+  }
+
+  private maybeShowLoginPrompt(
+    panel: Phaser.GameObjects.Container,
+    reached: number,
+    isNewRecord: boolean,
+  ): void {
+    if (!isNewRecord || !sdkInstance.isYandex() || sdkInstance.isLoggedIn() || loginPromptShownThisSession) return;
+    loginPromptShownThisSession = true;
+
+    const prompt = this.add.text(0, 258, '🏆 Sign in to save progress & compete!', {
+      fontSize: '13px', fontFamily: 'Arial', color: '#888888',
+    }).setOrigin(0.5);
+
+    const signInBtn = this.add.text(0, 276, '[ SIGN IN ]', {
+      fontSize: '16px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    signInBtn.on('pointerover', () => signInBtn.setColor('#ffffff'));
+    signInBtn.on('pointerout', () => signInBtn.setColor('#4ecdc4'));
+    signInBtn.on('pointerdown', () => {
+      signInBtn.disableInteractive().setText('Signing in...');
+      void sdkInstance.openAuthDialog().then(() => {
+        if (sdkInstance.isLoggedIn()) {
+          signInBtn.setText('✓ Signed in');
+          void sdkInstance.submitLeaderboardScore('best_wave', reached);
+        } else {
+          signInBtn.setInteractive({ useHandCursor: true }).setText('[ SIGN IN ]');
+        }
+      });
+    });
+
+    panel.add([prompt, signInBtn]);
+  }
+
+  private toggleDebugOverlay(): void {
+    if (this.debugPanel) {
+      this.debugPanel.destroy();
+      this.debugPanel = null;
+      return;
+    }
+
+    const lines = [
+      `SDK: ${sdkInstance.isYandex() ? 'Yandex' : 'fallback'}`,
+      `Logged in: ${sdkInstance.isLoggedIn() ? 'yes' : 'no'}`,
+      `Last ad: ${adManager.lastInterstitialAge}s ago`,
+      `Can interstitial: ${adManager.canShowInterstitial() ? 'yes' : 'no'}`,
+    ];
+
+    const bg = this.add.rectangle(100, 80, 240, lines.length * 22 + 16, 0x000000, 0.8)
+      .setStrokeStyle(1, 0x4ecdc4);
+    const label = this.add.text(100, 80, lines.join('\n'), {
+      fontSize: '13px', fontFamily: 'monospace', color: '#4ecdc4',
+      lineSpacing: 4,
+    }).setOrigin(0.5);
+
+    this.debugPanel = this.add.container(0, 0).setDepth(500);
+    this.debugPanel.add([bg, label]);
   }
 
   // ── Shop integration ────────────────────────────────────────────────────────
