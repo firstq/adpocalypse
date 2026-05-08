@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, UPGRADE_POOL } from '../config';
 import { HPBar } from '../ui/HPBar';
 import { BossHPBar } from '../ui/BossHPBar';
+import { InventoryHUD } from '../ui/InventoryHUD';
 import { GameScene, GameState } from './GameScene';
+import { ConsumableType } from '../systems/InventoryManager';
 import { t } from '../i18n';
 
 export class UIScene extends Phaser.Scene {
@@ -14,6 +16,7 @@ export class UIScene extends Phaser.Scene {
   private enemyBar!: Phaser.GameObjects.Rectangle;
   private enemyBarLabel!: Phaser.GameObjects.Text;
   private upgradeIcons!: Phaser.GameObjects.Container;
+  private inventoryHUD!: InventoryHUD;
   private pauseOverlay!: Phaser.GameObjects.Container;
   private paused = false;
   private lastUpgradeCount = -1;
@@ -56,6 +59,18 @@ export class UIScene extends Phaser.Scene {
 
     // Upgrade icons row
     this.upgradeIcons = this.add.container(10, 96);
+
+    // Inventory HUD (below upgrade icons)
+    const isMobile = !this.sys.game.device.os.desktop;
+    this.inventoryHUD = new InventoryHUD(
+      this,
+      10,
+      118,
+      isMobile,
+      (type: ConsumableType) => {
+        (this.scene.get('GameScene') as GameScene).activateConsumable(type);
+      },
+    );
 
     // Wave info (top center)
     this.waveText = this.add.text(GAME_WIDTH / 2, 14, t('wave.label', { wave: 1 }), {
@@ -205,5 +220,42 @@ export class UIScene extends Phaser.Scene {
         this.upgradeIcons.add(txt);
       });
     }
+
+    // Inventory HUD
+    if (state.inventory) {
+      this.inventoryHUD?.update(state.inventory, state.timeSlowActive, state.timeSlowRemaining);
+    }
+  }
+
+  showInventoryTutorial(): void {
+    const tipX = 10 + (4 * 48 + 3 * 8) / 2;
+    const tipY = 118 + 56;
+
+    const bg = this.add.rectangle(tipX, tipY, 260, 28, 0x1e293b, 0.92)
+      .setStrokeStyle(1, 0x334155)
+      .setDepth(200)
+      .setAlpha(0);
+
+    const label = this.add.text(tipX, tipY, t('inventory.tutorial'), {
+      fontSize: '12px',
+      fontFamily: 'Arial',
+      color: '#cbd5e1',
+    }).setOrigin(0.5).setDepth(201).setAlpha(0);
+
+    this.tweens.add({
+      targets: [bg, label],
+      alpha: 1,
+      duration: 300,
+      onComplete: () => {
+        this.time.delayedCall(4000, () => {
+          this.tweens.add({
+            targets: [bg, label],
+            alpha: 0,
+            duration: 400,
+            onComplete: () => { bg.destroy(); label.destroy(); },
+          });
+        });
+      },
+    });
   }
 }

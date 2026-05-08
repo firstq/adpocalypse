@@ -13,6 +13,7 @@ import { InputManager } from '../systems/InputManager';
 import { Projectile } from '../entities/Projectile';
 import { MetaProgress } from '../systems/MetaProgress';
 import { RewardedAdButton } from '../ui/RewardedAdButton';
+import { InventoryManager, ConsumableType, PlayerInventory } from '../systems/InventoryManager';
 
 // Persists across GameScene restarts within one browser session
 let loginPromptShownThisSession = false;
@@ -27,6 +28,9 @@ export interface GameState {
   bestWave: number;
   activeUpgrades: string[];
   gearsThisRun: number;
+  inventory: PlayerInventory;
+  timeSlowActive: boolean;
+  timeSlowRemaining: number;
 }
 
 export class GameScene extends Phaser.Scene {
@@ -41,6 +45,14 @@ export class GameScene extends Phaser.Scene {
   private waveManager!: WaveManager;
   audio!: AudioManager;
   private inputManager!: InputManager;
+
+  public inventory!: InventoryManager;
+  private timeSlowActive = false;
+  private timeSlowTimer: Phaser.Time.TimerEvent | null = null;
+  private timeSlowRemaining = 0;
+  private timeSlowOverlay: Phaser.GameObjects.Rectangle | null = null;
+  private firstConsumableBought = false;
+  private pendingInventoryTutorial = false;
 
   private waveCoinsEarned = 0;
   private adContinueUsed = false;
@@ -70,6 +82,14 @@ export class GameScene extends Phaser.Scene {
     this.adContinueUsed = false;
     this.gameOverOverlay = null;
     this.debugPanel = null;
+    this.timeSlowActive = false;
+    this.timeSlowTimer = null;
+    this.timeSlowRemaining = 0;
+    this.timeSlowOverlay = null;
+    this.firstConsumableBought = false;
+    this.pendingInventoryTutorial = false;
+
+    this.inventory = new InventoryManager();
 
     const bestWave = parseInt(localStorage.getItem('bestWave') || '0');
 
@@ -83,6 +103,9 @@ export class GameScene extends Phaser.Scene {
       bestWave,
       activeUpgrades: [],
       gearsThisRun: 0,
+      inventory: this.inventory.getAll(),
+      timeSlowActive: false,
+      timeSlowRemaining: 0,
     };
 
     this.audio = new AudioManager(this);
@@ -143,13 +166,18 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.events.on('resume', () => {
+      // Show first-time inventory tutorial if queued
+      if (this.pendingInventoryTutorial) {
+        this.pendingInventoryTutorial = false;
+        this.time.delayedCall(600, () => this.showInventoryTutorial());
+      }
+
       // Shop path
       const shopWave = this.registry.get('shopNextWave') as number | undefined;
       if (shopWave !== undefined) {
         this.registry.remove('shopNextWave');
-        const effects = (this.registry.get('shopPendingEffects') as string[] | undefined) ?? [];
-        this.registry.remove('shopPendingEffects');
-        this.applyShopEffects(effects, shopWave);
+        this.registry.remove('shopPendingEffects'); // no longer used
+        this.waveManager.startWave(shopWave);
         return;
       }
       // Upgrade path
@@ -172,6 +200,12 @@ export class GameScene extends Phaser.Scene {
         this.toggleDebugOverlay();
       }
     });
+
+    // Consumable hotkeys
+    this.input.keyboard?.on('keydown-ONE',  () => this.activateConsumable('bomb'));
+    this.input.keyboard?.on('keydown-TWO',  () => this.activateConsumable('healthPotion'));
+    this.input.keyboard?.on('keydown-THREE',() => this.activateConsumable('fullHeal'));
+    this.input.keyboard?.on('keydown-FOUR', () => this.activateConsumable('timeSlow'));
   }
 
   private applyMetaUpgrades(): void {
@@ -509,8 +543,16 @@ export class GameScene extends Phaser.Scene {
       this.showBonusGears(bonus);
     }
 
-    // Reset time slow applied by shop
+    // Reset time slow
     this.physics.world.timeScale = 1;
+    if (this.timeSlowActive) {
+      this.timeSlowActive = false;
+      this.timeSlowTimer?.remove();
+      this.timeSlowTimer = null;
+      this.timeSlowRemaining = 0;
+      this.timeSlowOverlay?.destroy();
+      this.timeSlowOverlay = null;
+    }
 
     this.updateUI();
 
@@ -608,7 +650,12 @@ export class GameScene extends Phaser.Scene {
     if (!this.scene.isActive('UIScene')) return;
     const ui = this.scene.get('UIScene') as Phaser.Scene & { updateState?: (s: GameState) => void };
     if (ui?.updateState) {
-      ui.updateState({ ...this.gameState });
+      ui.updateState({
+        ...this.gameState,
+        inventory: this.inventory.getAll(),
+        timeSlowActive: this.timeSlowActive,
+        timeSlowRemaining: this.timeSlowRemaining,
+      });
     }
   }
 
@@ -929,8 +976,6 @@ export class GameScene extends Phaser.Scene {
     const u = p.upgradeState;
     switch (id) {
       case 'small_potion':     p.heal(15); break;
-      case 'health_potion':    p.heal(30); break;
-      case 'full_heal':        p.hp = p.maxHp; break;
       case 'coin_sack':        this.gameState.coins += 20; break;
       case 'quick_snack':      p.maxHp += 5; p.hp = p.maxHp; break;
       case 'coin_magnet_shop': u.magnetRadius += 350; break;
@@ -952,29 +997,70 @@ export class GameScene extends Phaser.Scene {
     this.gameState.maxHp = p.maxHp;
   }
 
-  private applyShopEffects(effects: string[], nextWave: number): void {
-    if (effects.includes('time_slow')) {
-      this.physics.world.timeScale = 0.7;
+  addConsumableFromShop(consumableKey: string): void {
+    if (!this.firstConsumableBought) {
+      this.firstConsumableBought = true;
+      this.pendingInventoryTutorial = true;
     }
-    this.waveManager.startWave(nextWave);
-    if (effects.includes('bomb')) {
-      this.time.delayedCall(1800, () => this.fireBomb());
+    this.inventory.add(consumableKey as ConsumableType);
+  }
+
+  activateConsumable(type: ConsumableType): void {
+    if (this.gameOver) return;
+
+    if (this.inventory.count(type) <= 0) {
+      this.audio.playSFX('sfx_purchase', { volume: 0.15, detune: -600 });
+      this.showFloatingText(t('inventory.empty'), GAME_WIDTH / 2, GAME_HEIGHT / 2 - 60, '#ff4444');
+      return;
+    }
+
+    if ((type === 'healthPotion' || type === 'fullHeal') && this.player.hp >= this.player.maxHp) {
+      this.showFloatingText(t('inventory.full_hp'), this.player.x, this.player.y - 60, '#ffaa00');
+      return;
+    }
+
+    if (type === 'timeSlow' && this.timeSlowActive) {
+      return;
+    }
+
+    this.inventory.use(type);
+
+    switch (type) {
+      case 'bomb':         this.doActivateBomb(); break;
+      case 'healthPotion': this.doActivateHealthPotion(); break;
+      case 'fullHeal':     this.doActivateFullHeal(); break;
+      case 'timeSlow':     this.doActivateTimeSlow(); break;
     }
   }
 
-  private fireBomb(): void {
-    if (this.gameOver) return;
+  private doActivateBomb(): void {
+    const damage = Math.round(50 * (1 + this.currentWave * 0.05));
     this.enemies.getChildren().forEach(e => {
       const enemy = e as Enemy;
-      if (enemy.active) enemy.takeDamage(50);
+      if (enemy.active) enemy.takeDamage(damage);
     });
+    this.cameras.main.shake(300, 0.01);
+    this.audio.playSFX('sfx_wave_complete');
+
+    // Expanding ring flash from player
+    const flash = this.add.circle(this.player.x, this.player.y, 10, 0xffffff, 0.85).setDepth(30);
+    this.tweens.add({
+      targets: flash,
+      scaleX: 35, scaleY: 25,
+      alpha: 0,
+      duration: 600,
+      ease: 'Power2',
+      onComplete: () => flash.destroy(),
+    });
+
+    // Radial particles
     for (let i = 0; i < 16; i++) {
       const angle = (i / 16) * Math.PI * 2;
-      const p = this.add.circle(GAME_WIDTH / 2, GAME_HEIGHT / 2, 8, 0xff6600).setDepth(30);
+      const p = this.add.circle(this.player.x, this.player.y, 8, 0xff6600).setDepth(30);
       this.tweens.add({
         targets: p,
-        x: GAME_WIDTH / 2 + Math.cos(angle) * 500,
-        y: GAME_HEIGHT / 2 + Math.sin(angle) * 350,
+        x: this.player.x + Math.cos(angle) * 480,
+        y: this.player.y + Math.sin(angle) * 320,
         alpha: 0,
         scaleX: 0,
         scaleY: 0,
@@ -983,7 +1069,8 @@ export class GameScene extends Phaser.Scene {
         onComplete: () => p.destroy(),
       });
     }
-    const t = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, '💣 BOOM!', {
+
+    const boomText = this.add.text(this.player.x, this.player.y - 50, '💣 BOOM!', {
       fontSize: '52px',
       fontFamily: 'Arial Black, Arial',
       color: '#ff6600',
@@ -991,22 +1078,125 @@ export class GameScene extends Phaser.Scene {
       strokeThickness: 5,
     }).setOrigin(0.5).setDepth(31).setAlpha(0);
     this.tweens.add({
-      targets: t,
+      targets: boomText,
       alpha: 1,
       duration: 80,
       onComplete: () => {
         this.time.delayedCall(500, () => {
           this.tweens.add({
-            targets: t,
-            y: t.y - 80,
+            targets: boomText,
+            y: boomText.y - 80,
             alpha: 0,
             duration: 600,
             ease: 'Power2',
-            onComplete: () => t.destroy(),
+            onComplete: () => boomText.destroy(),
           });
         });
       },
     });
+  }
+
+  private doActivateHealthPotion(): void {
+    this.player.heal(30);
+    this.gameState.hp = this.player.hp;
+    this.audio.playSFX('sfx_coin_pickup', { detune: -200 });
+    this.showFloatingText('+30 HP', this.player.x, this.player.y - 60, '#22c55e');
+  }
+
+  private doActivateFullHeal(): void {
+    this.player.hp = this.player.maxHp;
+    this.gameState.hp = this.player.hp;
+    this.audio.playSFX('sfx_coin_pickup', { detune: 200 });
+    this.showFloatingText(t('inventory.full_restore'), this.player.x, this.player.y - 60, '#22c55e');
+
+    // Green burst around player
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      const p = this.add.circle(this.player.x, this.player.y, 5, 0x22c55e).setDepth(20);
+      this.tweens.add({
+        targets: p,
+        x: this.player.x + Math.cos(angle) * 65,
+        y: this.player.y + Math.sin(angle) * 65,
+        alpha: 0,
+        scaleX: 0,
+        scaleY: 0,
+        duration: 420,
+        ease: 'Power2',
+        onComplete: () => p.destroy(),
+      });
+    }
+  }
+
+  private doActivateTimeSlow(): void {
+    const DURATION = 8000;
+    this.timeSlowActive = true;
+    this.timeSlowRemaining = DURATION;
+    this.physics.world.timeScale = 0.5;
+
+    this.timeSlowOverlay?.destroy();
+    this.timeSlowOverlay = this.add.rectangle(
+      GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x1d4ed8, 0.12,
+    ).setDepth(50);
+    this.tweens.add({
+      targets: this.timeSlowOverlay,
+      alpha: 0.12,
+      duration: 300,
+    });
+
+    this.audio.playSFX('sfx_gear_pickup', { detune: -800 });
+
+    // Count down every 200ms for smooth timer display
+    this.timeSlowTimer?.remove();
+    this.timeSlowTimer = this.time.addEvent({
+      delay: 200,
+      repeat: Math.ceil(DURATION / 200) - 1,
+      callback: () => {
+        this.timeSlowRemaining = Math.max(0, this.timeSlowRemaining - 200);
+      },
+    });
+
+    this.time.delayedCall(DURATION, () => {
+      if (!this.timeSlowActive) return; // already cancelled by wave end
+      this.timeSlowActive = false;
+      this.timeSlowRemaining = 0;
+      this.timeSlowTimer = null;
+      this.physics.world.timeScale = 1;
+      if (this.timeSlowOverlay) {
+        this.tweens.add({
+          targets: this.timeSlowOverlay,
+          alpha: 0,
+          duration: 400,
+          onComplete: () => {
+            this.timeSlowOverlay?.destroy();
+            this.timeSlowOverlay = null;
+          },
+        });
+      }
+    });
+  }
+
+  private showFloatingText(text: string, x: number, y: number, color: string): void {
+    const label = this.add.text(x, y, text, {
+      fontSize: '22px',
+      fontFamily: 'Arial Black, Arial',
+      color,
+      stroke: '#000000',
+      strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(35);
+    this.tweens.add({
+      targets: label,
+      y: y - 50,
+      alpha: 0,
+      duration: 900,
+      ease: 'Power2',
+      onComplete: () => label.destroy(),
+    });
+  }
+
+  private showInventoryTutorial(): void {
+    if (!this.scene.isActive('UIScene')) return;
+    const ui = this.scene.get('UIScene') as Phaser.Scene & { showInventoryTutorial?: () => void };
+    ui?.showInventoryTutorial?.();
   }
 
   private showDoubleText(x: number, y: number): void {

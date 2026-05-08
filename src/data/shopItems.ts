@@ -12,7 +12,9 @@ export interface ShopItem {
   description: string;
   cost: number;
   rarity: ShopRarity;
-  isPending?: true; // effect applied at next wave start, not on purchase
+  isPending?: true; // legacy: effect applied at next wave start
+  manualActivation?: true; // adds to player inventory for on-demand use
+  consumableKey?: string;  // matches ConsumableType in InventoryManager
 }
 
 export const SHOP_ITEMS: ShopItem[] = [
@@ -20,11 +22,11 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'small_potion',     name: 'Small Potion',   icon: '🫙', iconKey: 'icon-quick-snack',    category: 'defense',  bigNumber: '+15 HP',  description: 'Restore 15 HP instantly',                        cost:  12, rarity: 'consumable' },
   { id: 'coin_sack',        name: 'Coin Sack',      icon: '💵', iconKey: 'icon-coin-sack',      category: 'economy',  bigNumber: '+20 🪙',  description: 'Gain 20 coins immediately',                      cost:  15, rarity: 'consumable' },
   { id: 'quick_snack',      name: 'Quick Snack',    icon: '🍏', iconKey: 'icon-quick-snack',    category: 'defense',  bigNumber: '+5 HP',   description: '+5 max HP and restore to full health',           cost:  20, rarity: 'consumable' },
-  { id: 'health_potion',    name: 'Health Potion',  icon: '🧪', iconKey: 'icon-full-heal',      category: 'defense',  bigNumber: '+30 HP',  description: 'Restore 30 HP instantly',                        cost:  25, rarity: 'consumable' },
-  { id: 'full_heal',        name: 'Full Heal',      icon: '💊', iconKey: 'icon-full-heal',      category: 'defense',  bigNumber: 'FULL',    description: 'Restore HP to maximum',                         cost:  75, rarity: 'consumable' },
+  { id: 'health_potion',    name: 'Health Potion',  icon: '🧪', iconKey: 'icon-full-heal',      category: 'defense',  bigNumber: '+30 HP',  description: 'Restore 30 HP. Activate with [2].',              cost:  25, rarity: 'consumable', manualActivation: true, consumableKey: 'healthPotion' },
+  { id: 'full_heal',        name: 'Full Heal',      icon: '💊', iconKey: 'icon-full-heal',      category: 'defense',  bigNumber: 'FULL',    description: 'Restore HP to maximum. Activate with [3].',     cost:  75, rarity: 'consumable', manualActivation: true, consumableKey: 'fullHeal' },
   { id: 'coin_magnet_shop', name: 'Coin Magnet',    icon: '🧲', iconKey: 'icon-magnet',         category: 'mobility', bigNumber: 'AUTO',    description: 'Auto-collect coins for the rest of this run',   cost:  40, rarity: 'consumable' },
-  { id: 'time_slow',        name: 'Time Slow',      icon: '🕐', iconKey: 'icon-eagle-eye',      category: 'special',  bigNumber: '-30%',    description: 'Enemies move 30% slower next wave',             cost:  60, rarity: 'consumable', isPending: true },
-  { id: 'bomb',             name: 'Bomb',           icon: '💣', iconKey: 'icon-bomb',           category: 'special',  bigNumber: '50 DMG',  description: 'Deal 50 damage to all enemies at wave start',   cost:  50, rarity: 'consumable', isPending: true },
+  { id: 'time_slow',        name: 'Time Slow',      icon: '🕐', iconKey: 'icon-eagle-eye',      category: 'special',  bigNumber: '-50%',    description: 'Slow enemies 50% for 8 seconds. Activate with [4].', cost:  60, rarity: 'consumable', manualActivation: true, consumableKey: 'timeSlow' },
+  { id: 'bomb',             name: 'Bomb',           icon: '💣', iconKey: 'icon-bomb',           category: 'special',  bigNumber: '50 DMG',  description: 'Deal 50 damage to all enemies on screen. Activate with [1].', cost:  50, rarity: 'consumable', manualActivation: true, consumableKey: 'bomb' },
   // ── Permanent run upgrades ────────────────────────────────
   { id: 'damage_boost_shop',  name: 'Damage Boost', icon: '⚔️', iconKey: 'icon-damage-boost',  category: 'attack',   bigNumber: '+10%',    description: '+10% melee damage for this run',               cost: 100, rarity: 'upgrade' },
   { id: 'hp_boost_shop',      name: 'HP Boost',     icon: '❤️', iconKey: 'icon-healthy-start', category: 'defense',  bigNumber: '+20 HP',  description: '+20 max HP and heal that amount',              cost: 100, rarity: 'upgrade' },

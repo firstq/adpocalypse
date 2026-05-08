@@ -29,7 +29,6 @@ const ROW_CENTERS = [
 export class ShopScene extends Phaser.Scene {
   private currentItems: ShopItem[] = [];
   private purchasedIds = new Set<string>();
-  private pendingEffects: string[] = [];
   private rerollUsed = false;
   private nextWave = 1;
 
@@ -48,7 +47,6 @@ export class ShopScene extends Phaser.Scene {
     this.nextWave = (this.registry.get('shopNextWave') as number) ?? 1;
     this.currentItems = pickShopItems(this.nextWave - 1);
     this.purchasedIds = new Set();
-    this.pendingEffects = [];
     this.rerollUsed = false;
 
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.84);
@@ -178,9 +176,9 @@ export class ShopScene extends Phaser.Scene {
     if (!gs.spendCoins(item.cost)) return;
     gs.audio.playSFX('sfx_purchase');
 
-    if (item.isPending) {
-      this.pendingEffects.push(item.id);
-    } else {
+    if (item.manualActivation && item.consumableKey) {
+      gs.addConsumableFromShop(item.consumableKey);
+    } else if (!item.isPending) {
       gs.applyShopItem(item.id);
     }
 
@@ -204,7 +202,6 @@ export class ShopScene extends Phaser.Scene {
   }
 
   private doProceed(): void {
-    this.registry.set('shopPendingEffects', this.pendingEffects);
     this.scene.stop();
     this.scene.resume('GameScene');
   }
