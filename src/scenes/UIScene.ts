@@ -3,6 +3,7 @@ import { GAME_WIDTH, UPGRADE_POOL } from '../config';
 import { HPBar } from '../ui/HPBar';
 import { BossHPBar } from '../ui/BossHPBar';
 import { GameScene, GameState } from './GameScene';
+import { t } from '../i18n';
 
 export class UIScene extends Phaser.Scene {
   private hpBar!: HPBar;
@@ -29,7 +30,7 @@ export class UIScene extends Phaser.Scene {
     // HP bar
     this.add.rectangle(110, 30, 204, 24, 0x000000, 0.5).setOrigin(0.5, 0.5);
     this.hpBar = new HPBar(this, 10, 18, 200, 20, 0xe74c3c, 0x555555);
-    this.add.text(10, 14, 'HP', {
+    this.add.text(10, 14, t('ui.hp'), {
       fontSize: '13px',
       fontFamily: 'Arial',
       color: '#aaaaaa',
@@ -57,7 +58,7 @@ export class UIScene extends Phaser.Scene {
     this.upgradeIcons = this.add.container(10, 96);
 
     // Wave info (top center)
-    this.waveText = this.add.text(GAME_WIDTH / 2, 14, 'Wave 1', {
+    this.waveText = this.add.text(GAME_WIDTH / 2, 14, t('wave.label', { wave: 1 }), {
       fontSize: '26px',
       fontFamily: 'Arial Black, Arial',
       color: '#ecf0f1',
@@ -77,7 +78,7 @@ export class UIScene extends Phaser.Scene {
     }).setOrigin(0.5, 0);
 
     // Best wave (top right, left of mute/pause)
-    this.bestText = this.add.text(GAME_WIDTH - 108, 14, 'Best: —', {
+    this.bestText = this.add.text(GAME_WIDTH - 108, 14, t('ui.best_none'), {
       fontSize: '16px',
       fontFamily: 'Arial',
       color: '#777777',
@@ -112,13 +113,13 @@ export class UIScene extends Phaser.Scene {
     this.pauseOverlay.setDepth(200);
 
     const bg = this.add.rectangle(0, 0, 400, 300, 0x000000, 0.85);
-    const title = this.add.text(0, -100, 'PAUSED', {
+    const title = this.add.text(0, -100, t('ui.paused'), {
       fontSize: '52px',
       fontFamily: 'Arial Black, Arial',
       color: '#ecf0f1',
     }).setOrigin(0.5);
 
-    const resumeText = this.add.text(0, 10, '[ RESUME ]', {
+    const resumeText = this.add.text(0, 10, t('ui.resume'), {
       fontSize: '32px',
       fontFamily: 'Arial',
       color: '#4ecdc4',
@@ -128,7 +129,7 @@ export class UIScene extends Phaser.Scene {
     resumeText.on('pointerout', () => resumeText.setColor('#4ecdc4'));
     resumeText.on('pointerdown', () => this.togglePause());
 
-    const restartText = this.add.text(0, 80, '[ RESTART ]', {
+    const restartText = this.add.text(0, 80, t('ui.restart'), {
       fontSize: '32px',
       fontFamily: 'Arial',
       color: '#e74c3c',
@@ -171,16 +172,16 @@ export class UIScene extends Phaser.Scene {
   }
 
   updateState(state: GameState): void {
-    if (!this.hpBar) return; // create() not yet called
+    if (!this.hpBar) return;
     this.hpBar?.setValue(state.hp, state.maxHp);
     this.coinText?.setText(`🪙 ${state.coins}`);
     this.gearText?.setText(`⚙ ${state.gearsThisRun}`);
 
     const isBoss = state.wave > 1 && (state.wave - 1) % 5 === 0;
     const waveColor = isBoss ? '#ff6600' : '#ecf0f1';
-    this.waveText?.setText(`Wave ${state.wave}`).setColor(waveColor);
+    this.waveText?.setText(t('wave.label', { wave: state.wave })).setColor(waveColor);
 
-    const best = state.bestWave > 0 ? `Best: ${state.bestWave}` : 'Best: —';
+    const best = state.bestWave > 0 ? t('ui.best', { wave: state.bestWave }) : t('ui.best_none');
     this.bestText?.setText(best);
 
     // Enemy progress bar
@@ -200,8 +201,8 @@ export class UIScene extends Phaser.Scene {
       upgrades.slice(0, 20).forEach((id, i) => {
         const def = UPGRADE_POOL.find(u => u.id === id);
         if (!def) return;
-        const t = this.add.text(i * 26, 0, def.icon, { fontSize: '18px' });
-        this.upgradeIcons.add(t);
+        const txt = this.add.text(i * 26, 0, def.icon, { fontSize: '18px' });
+        this.upgradeIcons.add(txt);
       });
     }
   }

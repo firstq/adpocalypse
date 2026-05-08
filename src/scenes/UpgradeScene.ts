@@ -4,6 +4,7 @@ import { GameScene } from './GameScene';
 import { UpgradeCard } from '../ui/UpgradeCard';
 import { RewardedAdButton } from '../ui/RewardedAdButton';
 import { adManager } from '../systems/sdk';
+import { t } from '../i18n';
 
 export class UpgradeScene extends Phaser.Scene {
   constructor() {
@@ -11,16 +12,14 @@ export class UpgradeScene extends Phaser.Scene {
   }
 
   create(): void {
-    const numCards  = (this.registry.get('upgradeCards')   as number) ?? 3;
-    const nextWave  = (this.registry.get('upgradeWave')    as number) ?? 1;
+    const numCards  = (this.registry.get('upgradeCards')     as number) ?? 3;
+    const nextWave  = (this.registry.get('upgradeWave')      as number) ?? 1;
     const waveCoins = (this.registry.get('upgradeWaveCoins') as number) ?? 0;
     const isBoss = numCards >= 4;
 
-    // Dark overlay
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.82);
 
-    // Title
-    const title      = isBoss ? '★ BOSS DEFEATED! ★' : `WAVE ${nextWave - 1} CLEARED!`;
+    const title      = isBoss ? t('wave.boss_cleared') : t('wave.cleared', { wave: nextWave - 1 });
     const titleColor = isBoss ? '#ff6600' : '#f1c40f';
     this.add.text(GAME_WIDTH / 2, 52, title, {
       fontSize: isBoss ? '50px' : '46px',
@@ -30,19 +29,18 @@ export class UpgradeScene extends Phaser.Scene {
       strokeThickness: 5,
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 118, 'Choose an upgrade', {
+    this.add.text(GAME_WIDTH / 2, 118, t('wave.choose_upgrade'), {
       fontSize: '22px',
       fontFamily: 'Arial',
       color: '#64748b',
     }).setOrigin(0.5);
 
-    // Double-coins rewarded ad (only if player earned coins this wave)
     let adButton: RewardedAdButton | undefined;
     if (waveCoins > 0) {
       adButton = new RewardedAdButton(this, GAME_WIDTH / 2, 200, {
         size: 'large',
-        subtitle: 'WATCH AD FOR DOUBLE COINS',
-        rewardLabel: `+${waveCoins} BONUS COINS`,
+        subtitle: t('ad.double_coins_subtitle'),
+        rewardLabel: t('ad.bonus_coins', { amount: waveCoins }),
         onAdRequest: () => adManager.showRewarded(),
         onSuccess: () => {
           const gs = this.scene.get('GameScene') as GameScene;
@@ -52,7 +50,6 @@ export class UpgradeScene extends Phaser.Scene {
       adButton.show();
     }
 
-    // Pick random upgrades
     const pool     = Phaser.Utils.Array.Shuffle([...UPGRADE_POOL]);
     const selected = pool.slice(0, numCards);
 
@@ -65,12 +62,12 @@ export class UpgradeScene extends Phaser.Scene {
     selected.forEach((upg, i) => {
       new UpgradeCard(this, startX + i * (cardW + gap), cardY, {
         iconKey:     upg.iconKey,
-        name:        upg.label,
+        name:        t(`inwave.${upg.id}`),
         category:    upg.category,
         bigNumber:   upg.bigNumber,
-        description: upg.description,
+        description: t(`inwave.${upg.id}.desc`),
         variant:     'in-wave',
-        buyLabel:    'CHOOSE',
+        buyLabel:    t('wave.upgrade_choose'),
         onBuy: () => {
           adButton?.hide();
           const gs = this.scene.get('GameScene') as GameScene;
@@ -81,8 +78,7 @@ export class UpgradeScene extends Phaser.Scene {
       });
     });
 
-    // Skip button
-    const skipText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 28, `[ skip — start wave ${nextWave} ]`, {
+    const skipText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 28, t('wave.skip', { wave: nextWave }), {
       fontSize: '16px',
       fontFamily: 'Arial',
       color: '#475569',

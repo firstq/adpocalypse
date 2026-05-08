@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { UpgradeCategory, CATEGORY_COLORS, CATEGORY_COLORS_HEX } from './categories';
+import { t } from '../i18n';
 
 export type ItemType = 'consumable' | 'upgrade' | 'rare';
 
@@ -27,10 +28,15 @@ type Variant = 'shop' | 'workshop' | 'in-wave';
 const CARD_W: Record<Variant, number> = { 'in-wave': 240, shop: 280, workshop: 280 };
 const CARD_H: Record<Variant, number> = { 'in-wave': 360, shop: 260, workshop: 280 };
 
-const ITEM_TYPE_STYLE: Record<ItemType, { bg: number; text: string; label: string }> = {
-  consumable: { bg: 0x3b82f6, text: '#ffffff', label: '1× USE' },
-  upgrade:    { bg: 0xeab308, text: '#0f172a', label: '∞ PERM' },
-  rare:       { bg: 0xa855f7, text: '#ffffff', label: '★ RARE' },
+const ITEM_TYPE_BG: Record<ItemType, number> = {
+  consumable: 0x3b82f6,
+  upgrade:    0xeab308,
+  rare:       0xa855f7,
+};
+const ITEM_TYPE_TEXT: Record<ItemType, string> = {
+  consumable: '#ffffff',
+  upgrade:    '#0f172a',
+  rare:       '#ffffff',
 };
 
 export class UpgradeCard extends Phaser.GameObjects.Container {
@@ -125,10 +131,9 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
     this.add(descText);
 
     // ── Progress section (workshop only) ──
-    // Anchored relative to cost row so it never overlaps: cost at hh-28, progress ends ~30px above it
     if (variant === 'workshop' && config.level) {
       const progFromTop = 190;
-      this.buildProgressSection(config, -hw + PAD, -hh + progFromTop, catColor, catHex, W, PAD);
+      this.buildProgressSection(config, -hw + PAD, -hh + progFromTop, catColor, W, PAD);
     }
 
     // ── Cost row (shop / workshop) ──
@@ -138,16 +143,15 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
   }
 
   private buildTypeTag(itemType: ItemType, rightX: number, centerY: number): void {
-    const style = ITEM_TYPE_STYLE[itemType];
     const tagW = 80;
     const tagH = 24;
     const tagX = rightX - tagW / 2;
 
-    const tagBg = this.scene.add.rectangle(tagX, centerY, tagW, tagH, style.bg);
-    const tagLabel = this.scene.add.text(tagX, centerY, style.label, {
+    const tagBg = this.scene.add.rectangle(tagX, centerY, tagW, tagH, ITEM_TYPE_BG[itemType]);
+    const tagLabel = this.scene.add.text(tagX, centerY, t(`shop.tag.${itemType}`), {
       fontSize: '10px',
       fontFamily: 'Arial Black, Arial',
-      color: style.text,
+      color: ITEM_TYPE_TEXT[itemType],
     }).setOrigin(0.5);
     this.add([tagBg, tagLabel]);
 
@@ -168,7 +172,6 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
     leftX: number,
     topY: number,
     catColor: number,
-    _catHex: string,
     W: number,
     PAD: number,
   ): void {
@@ -176,7 +179,7 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
     const maxed = level.current >= level.max;
 
     if (maxed) {
-      const maxLabel = this.scene.add.text(0, topY + 8, 'MAX LEVEL', {
+      const maxLabel = this.scene.add.text(0, topY + 8, t('workshop.max_level'), {
         fontSize: '13px',
         fontFamily: 'Arial Black, Arial',
         color: '#10b981',
@@ -185,7 +188,7 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
       return;
     }
 
-    const lvlLabel = this.scene.add.text(leftX, topY, `Level ${level.current} / ${level.max}`, {
+    const lvlLabel = this.scene.add.text(leftX, topY, t('workshop.level', { current: level.current, max: level.max }), {
       fontSize: '11px',
       fontFamily: 'Arial',
       color: '#64748b',
@@ -207,11 +210,10 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
       this.add(barFill);
     }
 
-    // Current → next effect comparison
     if (config.currentEffect !== undefined && config.nextEffect !== undefined) {
       const effY = barY + 12;
       const effText = this.scene.add.text(leftX, effY,
-        `Now: ${config.currentEffect}  →  Next: ${config.nextEffect}`, {
+        t('workshop.now_next', { current: config.currentEffect, next: config.nextEffect }), {
         fontSize: '11px',
         fontFamily: 'Arial',
         color: '#475569',
@@ -223,9 +225,8 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
   private buildCostRow(config: UpgradeCardConfig, centerY: number, hw: number, catColor: number): void {
     const PAD = 16;
 
-    // Purchased state: clean full-width label, no cost/button
     if (config.purchased) {
-      const purchasedText = this.scene.add.text(0, centerY, '✓ PURCHASED', {
+      const purchasedText = this.scene.add.text(0, centerY, t('shop.bought'), {
         fontSize: '13px',
         fontFamily: 'Arial Black, Arial',
         color: '#64748b',
@@ -250,7 +251,7 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
     const btnW = 100;
     const btnH = 34;
     const btnX = hw - PAD - btnW / 2;
-    const btnLabel = maxed ? 'MAXED' : (config.buyLabel ?? 'BUY');
+    const btnLabel = maxed ? t('workshop.maxed') : (config.buyLabel ?? t('shop.buy'));
     const btnFill = maxed ? 0x334155 : affordable ? catColor : 0x475569;
     const btnTextColor = maxed ? '#64748b' : '#ffffff';
 

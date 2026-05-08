@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { initSDK } from '../systems/sdk';
+import { initI18n } from '../i18n';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -15,6 +16,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   private async initAsync(): Promise<void> {
+    initI18n();
     await initSDK();
     this.scene.start('PreloadScene');
   }

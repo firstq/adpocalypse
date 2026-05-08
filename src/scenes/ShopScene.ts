@@ -5,6 +5,7 @@ import { ShopItem, pickShopItems } from '../data/shopItems';
 import { UpgradeCard } from '../ui/UpgradeCard';
 import { RewardedAdButton } from '../ui/RewardedAdButton';
 import { adManager } from '../systems/sdk';
+import { t } from '../i18n';
 
 const CARD_W = 280;
 const CARD_H = 260;
@@ -19,7 +20,7 @@ const COL_CENTERS = [
   LEFT_EDGE + CARD_W + H_GAP + CARD_W / 2,
   LEFT_EDGE + CARD_W * 2 + H_GAP * 2 + CARD_W / 2,
 ];
-const GRID_TOP_Y = 88; // top of first card row (card centers at GRID_TOP_Y + CARD_H/2)
+const GRID_TOP_Y = 88;
 const ROW_CENTERS = [
   GRID_TOP_Y + CARD_H / 2,
   GRID_TOP_Y + CARD_H / 2 + ROW_PITCH,
@@ -59,7 +60,7 @@ export class ShopScene extends Phaser.Scene {
   }
 
   private buildHeader(): void {
-    this.add.text(GAME_WIDTH / 2, 14, '💰 PREMIUM OFFERS', {
+    this.add.text(GAME_WIDTH / 2, 14, t('shop.title'), {
       fontSize: '38px',
       fontFamily: 'Arial Black, Arial',
       color: '#ffd700',
@@ -78,8 +79,6 @@ export class ShopScene extends Phaser.Scene {
   private buildFooter(): void {
     const footerY = ROW_CENTERS[1] + CARD_H / 2 + 24;
 
-    // Bottom action row — three buttons evenly laid out:
-    // [REFRESH ~230px] [FREE REROLL ~210px] [PROCEED ~230px]  total ~710px centred in 1280
     const REFRESH_X = 400;
     const AD_X      = 640;
     const PROCEED_X = 880;
@@ -89,7 +88,7 @@ export class ShopScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x55aa55)
       .setInteractive({ useHandCursor: true });
 
-    this.rerollLabel = this.add.text(REFRESH_X, footerY, `🎲 REFRESH  🪙 ${this.rerollCost}`, {
+    this.rerollLabel = this.add.text(REFRESH_X, footerY, t('shop.refresh_cost', { cost: this.rerollCost }), {
       fontSize: '16px',
       fontFamily: 'Arial Black, Arial',
       color: '#55cc55',
@@ -99,11 +98,11 @@ export class ShopScene extends Phaser.Scene {
     this.rerollBg.on('pointerout',  () => { if (!this.rerollUsed) this.rerollBg.setFillStyle(0x334433); });
     this.rerollBg.on('pointerdown', () => this.doReroll());
 
-    // Free reroll via rewarded ad — inline with the row, subtle pulse
+    // Free reroll via rewarded ad
     const adRerollBtn = new RewardedAdButton(this, AD_X, footerY, {
       size: 'small',
-      subtitle: 'WATCH AD TO REROLL',
-      rewardLabel: 'FREE REROLL',
+      subtitle: t('ad.shop_reroll_subtitle'),
+      rewardLabel: t('ad.free_reroll'),
       pulseScale: 1.02,
       pulseDuration: 2000,
       onAdRequest: () => adManager.showRewarded(),
@@ -120,7 +119,7 @@ export class ShopScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x10b981)
       .setInteractive({ useHandCursor: true });
 
-    const proceedLabel = this.add.text(PROCEED_X, footerY, `PROCEED  →  Wave ${this.nextWave}`, {
+    const proceedLabel = this.add.text(PROCEED_X, footerY, t('shop.proceed', { wave: this.nextWave }), {
       fontSize: '16px',
       fontFamily: 'Arial Black, Arial',
       color: '#10b981',
@@ -130,7 +129,7 @@ export class ShopScene extends Phaser.Scene {
     proceedBg.on('pointerout',  () => { proceedBg.setFillStyle(0x1e3a2f); proceedLabel.setColor('#10b981'); });
     proceedBg.on('pointerdown', () => this.doProceed());
 
-    this.add.text(GAME_WIDTH / 2, footerY + 38, 'Buy multiple items — anything not purchased is discarded.', {
+    this.add.text(GAME_WIDTH / 2, footerY + 38, t('shop.hint'), {
       fontSize: '13px',
       fontFamily: 'Arial',
       color: '#475569',
@@ -152,10 +151,10 @@ export class ShopScene extends Phaser.Scene {
 
       const card = new UpgradeCard(this, cx, cy, {
         iconKey: item.iconKey,
-        name: item.name,
+        name: t(`shopitem.${item.id}`),
         category: item.category,
         bigNumber: bought ? '✓' : item.bigNumber,
-        description: item.description,
+        description: t(`shopitem.${item.id}.desc`),
         itemType: item.rarity as 'consumable' | 'upgrade' | 'rare',
         cost: { amount: item.cost, currency: 'coins' },
         affordable,
@@ -212,6 +211,6 @@ export class ShopScene extends Phaser.Scene {
 
   private refreshCoinLabel(): void {
     const gs = this.scene.get('GameScene') as GameScene;
-    this.coinLabel?.setText(`🪙 ${gs.getCoins()} coins available`);
+    this.coinLabel?.setText(t('shop.coins_available', { coins: gs.getCoins() }));
   }
 }

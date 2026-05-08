@@ -102,7 +102,7 @@ export class InputManager {
     this.right = this.keys.right.isDown;
     this.up = this.keys.up.isDown;
     this.down = this.keys.down.isDown;
-    this.attack = Phaser.Input.Keyboard.JustDown(this.keys.space) || this.touchAttackHeld;
+    this.attack = this.keys.space.isDown || this.touchAttackHeld;
 
     if (this.isMobile && this.joystickActive) {
       const dx = this.joystickCurrent.x - this.joystickStart.x;

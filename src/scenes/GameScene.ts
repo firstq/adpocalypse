@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
+import { t } from '../i18n';
 import { Biome1Background } from './background/Biome1Background';
 import { Player } from '../entities/Player';
 import { adManager, saveManager, sdkInstance } from '../systems/sdk';
@@ -281,7 +282,7 @@ export class GameScene extends Phaser.Scene {
 
   private showReviveEffect(): void {
     const charges = this.player.reviveCharges;
-    const t = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, `💫 REVIVED! (${charges} left)`, {
+    const reviveText = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, t('game.revived', { charges }), {
       fontSize: '36px',
       fontFamily: 'Arial Black, Arial',
       color: '#aaddff',
@@ -290,12 +291,12 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(98);
 
     this.tweens.add({
-      targets: t,
+      targets: reviveText,
       y: GAME_HEIGHT / 2 - 80,
       alpha: 0,
       duration: 1500,
       ease: 'Power2',
-      onComplete: () => t.destroy(),
+      onComplete: () => reviveText.destroy(),
     });
 
     // Brief flash of white
@@ -366,7 +367,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showCritText(x: number, y: number): void {
-    const t = this.add.text(x, y - 30, 'CRIT!', {
+    const critText = this.add.text(x, y - 30, t('game.crit'), {
       fontSize: '24px',
       fontFamily: 'Arial Black, Arial',
       color: '#ffff00',
@@ -374,12 +375,12 @@ export class GameScene extends Phaser.Scene {
       strokeThickness: 3,
     }).setOrigin(0.5).setDepth(25);
     this.tweens.add({
-      targets: t,
+      targets: critText,
       y: y - 80,
       alpha: 0,
       duration: 600,
       ease: 'Power2',
-      onComplete: () => t.destroy(),
+      onComplete: () => critText.destroy(),
     });
   }
 
@@ -558,7 +559,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showBonusGears(n: number): void {
-    const t = this.add.text(GAME_WIDTH / 2, 250, `+${n} ⚙ bonus gears!`, {
+    const gearsNotif = this.add.text(GAME_WIDTH / 2, 250, t('game.bonus_gears', { count: n }), {
       fontSize: '26px',
       fontFamily: 'Arial Black, Arial',
       color: '#aaaadd',
@@ -567,7 +568,7 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(55).setAlpha(0);
 
     this.tweens.add({
-      targets: t,
+      targets: gearsNotif,
       alpha: 1,
       y: 220,
       duration: 300,
@@ -575,11 +576,11 @@ export class GameScene extends Phaser.Scene {
       onComplete: () => {
         this.time.delayedCall(900, () => {
           this.tweens.add({
-            targets: t,
+            targets: gearsNotif,
             alpha: 0,
             y: 190,
             duration: 300,
-            onComplete: () => t.destroy(),
+            onComplete: () => gearsNotif.destroy(),
           });
         });
       },
@@ -653,7 +654,7 @@ export class GameScene extends Phaser.Scene {
     const bg = this.add.rectangle(0, 0, 600, 620, 0x080808, 0.95);
     bg.setStrokeStyle(2, 0xe74c3c);
 
-    const title = this.add.text(0, -268, 'GAME OVER', {
+    const title = this.add.text(0, -268, t('gameover.title'), {
       fontSize: '72px',
       fontFamily: 'Arial Black, Arial',
       color: '#e74c3c',
@@ -661,31 +662,31 @@ export class GameScene extends Phaser.Scene {
       strokeThickness: 6,
     }).setOrigin(0.5);
 
-    const waveText = this.add.text(0, -196, `Wave: ${reached}`, {
+    const waveText = this.add.text(0, -196, t('gameover.wave_reached', { wave: reached }), {
       fontSize: '28px',
       fontFamily: 'Arial Black, Arial',
       color: '#ecf0f1',
     }).setOrigin(0.5);
 
     const recordText = isNewRecord
-      ? this.add.text(0, -162, '🏆 NEW RECORD!', {
+      ? this.add.text(0, -162, t('gameover.new_record'), {
           fontSize: '22px',
           fontFamily: 'Arial Black, Arial',
           color: '#ffd700',
         }).setOrigin(0.5)
-      : this.add.text(0, -162, `Best: ${best}`, {
+      : this.add.text(0, -162, t('gameover.best', { best }), {
           fontSize: '18px',
           fontFamily: 'Arial',
           color: '#666666',
         }).setOrigin(0.5);
 
-    const coinsText = this.add.text(0, -124, `Coins collected: ${this.gameState.coins}`, {
+    const coinsText = this.add.text(0, -124, t('gameover.coins_collected', { coins: this.gameState.coins }), {
       fontSize: '22px',
       fontFamily: 'Arial',
       color: '#ffd700',
     }).setOrigin(0.5);
 
-    const upgradesText = this.add.text(0, -93, `Upgrades taken: ${this.player.upgradeState.activeUpgrades.length}`, {
+    const upgradesText = this.add.text(0, -93, t('gameover.upgrades_taken', { count: this.player.upgradeState.activeUpgrades.length }), {
       fontSize: '18px',
       fontFamily: 'Arial',
       color: '#aaaaaa',
@@ -698,13 +699,13 @@ export class GameScene extends Phaser.Scene {
     const totalGears = MetaProgress.getGears();
     const gearsObj = { value: 0 };
 
-    const gearsText = this.add.text(0, -48, '⚙ Gears earned this run: 0', {
+    const gearsText = this.add.text(0, -48, t('gameover.gears_earned', { count: 0 }), {
       fontSize: '20px',
       fontFamily: 'Arial Black, Arial',
       color: '#aaaadd',
     }).setOrigin(0.5);
 
-    const totalText = this.add.text(0, -20, `⚙ Total gears: ${totalGears}`, {
+    const totalText = this.add.text(0, -20, t('gameover.total_gears', { count: totalGears }), {
       fontSize: '16px',
       fontFamily: 'Arial',
       color: '#777799',
@@ -716,10 +717,10 @@ export class GameScene extends Phaser.Scene {
       duration: 1000,
       ease: 'Power2',
       onUpdate: () => {
-        gearsText.setText(`⚙ Gears earned this run: ${Math.floor(gearsObj.value)}`);
+        gearsText.setText(t('gameover.gears_earned', { count: Math.floor(gearsObj.value) }));
       },
       onComplete: () => {
-        gearsText.setText(`⚙ Gears earned this run: ${gearsEarned}`);
+        gearsText.setText(t('gameover.gears_earned', { count: gearsEarned }));
       },
     });
 
@@ -728,8 +729,8 @@ export class GameScene extends Phaser.Scene {
     if (!this.adContinueUsed) {
       adButton = new RewardedAdButton(this, cx, cy + 55, {
         size: 'large',
-        subtitle: 'WATCH AD TO CONTINUE',
-        rewardLabel: 'REVIVE AT 50% HP',
+        subtitle: t('ad.continue'),
+        rewardLabel: t('ad.revive'),
         onAdRequest: () => adManager.showRewarded(),
         onSuccess: () => {
           adButton = undefined;
@@ -740,7 +741,7 @@ export class GameScene extends Phaser.Scene {
       this.time.delayedCall(320, () => adButton?.show());
     }
 
-    const tryAgainBtn = this.add.text(0, 168, '[ TRY AGAIN ]', {
+    const tryAgainBtn = this.add.text(0, 168, t('gameover.try_again'), {
       fontSize: '34px',
       fontFamily: 'Arial Black, Arial',
       color: '#4ecdc4',
@@ -752,7 +753,7 @@ export class GameScene extends Phaser.Scene {
     tryAgainBtn.on('pointerout', () => tryAgainBtn.setColor('#4ecdc4'));
     tryAgainBtn.on('pointerdown', () => {
       adButton?.hide();
-      tryAgainBtn.disableInteractive().setText('...');
+      tryAgainBtn.disableInteractive().setText(t('common.loading'));
       const wasMuted = this.sound.mute;
       this.sound.setMute(true);
       void adManager.showInterstitial().then(() => {
@@ -763,7 +764,7 @@ export class GameScene extends Phaser.Scene {
 
     // Workshop button (pulsing glow if player has unspent gears)
     const workshopGlowRect = this.add.rectangle(0, 228, 260, 46, 0xffaa00, 0);
-    const workshopBtn = this.add.text(0, 228, '[ ⚙ VISIT WORKSHOP ]', {
+    const workshopBtn = this.add.text(0, 228, t('gameover.visit_workshop'), {
       fontSize: '26px',
       fontFamily: 'Arial Black, Arial',
       color: '#ffcc66',
@@ -790,7 +791,7 @@ export class GameScene extends Phaser.Scene {
       this.scene.start('WorkshopScene');
     });
 
-    const menuBtn = this.add.text(0, 282, '[ MAIN MENU ]', {
+    const menuBtn = this.add.text(0, 282, t('gameover.main_menu'), {
       fontSize: '22px',
       fontFamily: 'Arial',
       color: '#888888',
@@ -803,7 +804,7 @@ export class GameScene extends Phaser.Scene {
     // First-time workshop nudge
     const firstTime = !MetaProgress.hasVisitedWorkshop() && gearsEarned > 0;
     const nudge = firstTime
-      ? this.add.text(0, 314, '↑ Spend your gears here to grow stronger!', {
+      ? this.add.text(0, 314, t('gameover.workshop_nudge'), {
           fontSize: '13px',
           fontFamily: 'Arial',
           color: '#ffaa44',
@@ -862,24 +863,24 @@ export class GameScene extends Phaser.Scene {
     if (!isNewRecord || !sdkInstance.isYandex() || sdkInstance.isLoggedIn() || loginPromptShownThisSession) return;
     loginPromptShownThisSession = true;
 
-    const prompt = this.add.text(0, 258, '🏆 Sign in to save progress & compete!', {
+    const prompt = this.add.text(0, 258, t('gameover.sign_in_prompt'), {
       fontSize: '13px', fontFamily: 'Arial', color: '#888888',
     }).setOrigin(0.5);
 
-    const signInBtn = this.add.text(0, 276, '[ SIGN IN ]', {
+    const signInBtn = this.add.text(0, 276, t('gameover.sign_in'), {
       fontSize: '16px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     signInBtn.on('pointerover', () => signInBtn.setColor('#ffffff'));
     signInBtn.on('pointerout', () => signInBtn.setColor('#4ecdc4'));
     signInBtn.on('pointerdown', () => {
-      signInBtn.disableInteractive().setText('Signing in...');
+      signInBtn.disableInteractive().setText(t('gameover.signing_in'));
       void sdkInstance.openAuthDialog().then(() => {
         if (sdkInstance.isLoggedIn()) {
-          signInBtn.setText('✓ Signed in');
+          signInBtn.setText(t('gameover.signed_in'));
           void sdkInstance.submitLeaderboardScore('best_wave', reached);
         } else {
-          signInBtn.setInteractive({ useHandCursor: true }).setText('[ SIGN IN ]');
+          signInBtn.setInteractive({ useHandCursor: true }).setText(t('gameover.sign_in'));
         }
       });
     });

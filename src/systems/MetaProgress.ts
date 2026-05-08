@@ -1,5 +1,6 @@
 import { UpgradeCategory } from '../ui/categories';
 import { saveManager } from './sdk';
+import { t } from '../i18n';
 
 const GEAR_KEY = 'adpocalypse_gears';
 const META_KEY = 'adpocalypse_meta_upgrades';
@@ -26,7 +27,7 @@ export const META_UPGRADE_DEFS: MetaUpgradeDef[] = [
   { id: 'start_hp',     name: 'Healthy Start', icon: '❤️', iconKey: 'icon-healthy-start', category: 'defense',  description: 'Start each run with +10 HP (max +100 HP)',        maxLevel: 10, describeLevel: l => `+${l * 10} HP` },
   { id: 'crit_chance',  name: 'Eagle Eye',     icon: '🎯', iconKey: 'icon-eagle-eye',     category: 'attack',   description: '+1% crit chance per level (max +10%)',            maxLevel: 10, describeLevel: l => `+${l}%` },
   { id: 'magnet_range', name: 'Magnet',        icon: '🧲', iconKey: 'icon-magnet',        category: 'mobility', description: '+20px coin pickup radius per level (max 200px)',  maxLevel: 10, describeLevel: l => `+${l * 20}px` },
-  { id: 'revive',       name: 'Second Wind',   icon: '💫', iconKey: 'icon-second-wind',   category: 'special',  description: 'Revive at 50% HP: L1-4=1 use, L5-9=2, L10=3',   maxLevel: 10, describeLevel: l => l === 0 ? 'None' : l <= 4 ? '1 revive' : l <= 9 ? '2 revives' : '3 revives' },
+  { id: 'revive',       name: 'Second Wind',   icon: '💫', iconKey: 'icon-second-wind',   category: 'special',  description: 'Revive at 50% HP: L1-4=1 use, L5-9=2, L10=3',   maxLevel: 10, describeLevel: l => l === 0 ? t('meta.revive.none') : l <= 4 ? t('meta.revive.one') : l <= 9 ? t('meta.revive.two') : t('meta.revive.three') },
 ];
 
 type MetaLevels = Record<string, number>;

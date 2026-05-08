@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": ["phaser"]
+    "types": ["phaser"],
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

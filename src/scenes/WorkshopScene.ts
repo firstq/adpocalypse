@@ -4,6 +4,7 @@ import { MetaProgress, META_UPGRADE_DEFS } from '../systems/MetaProgress';
 import { UpgradeCard } from '../ui/UpgradeCard';
 import { RewardedAdButton } from '../ui/RewardedAdButton';
 import { adManager } from '../systems/sdk';
+import { t } from '../i18n';
 
 // Once per browser session
 let workshopRewardUsedThisSession = false;
@@ -23,10 +24,10 @@ const COL_CENTERS = [
   LEFT_EDGE + CARD_W * 2 + H_GAP * 2 + CARD_W / 2,
 ];
 
-const HEADER_H = 128;  // space reserved for header (extra room for ad button)
-const FOOTER_H = 52;   // space reserved for back button
+const HEADER_H = 128;
+const FOOTER_H = 52;
 const VISIBLE_H = GAME_HEIGHT - HEADER_H - FOOTER_H;
-const GRID_TOP = HEADER_H + CARD_H / 2; // y of first card centre
+const GRID_TOP = HEADER_H + CARD_H / 2;
 
 export class WorkshopScene extends Phaser.Scene {
   private gearsText!: Phaser.GameObjects.Text;
@@ -40,13 +41,11 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Background
     const bg = this.add.graphics();
     bg.fillGradientStyle(0x0d0d2b, 0x0d0d2b, 0x12122e, 0x12122e, 1);
     bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // Header
-    this.add.text(GAME_WIDTH / 2, 14, '⚙ WORKSHOP', {
+    this.add.text(GAME_WIDTH / 2, 14, t('workshop.title'), {
       fontSize: '40px',
       fontFamily: 'Arial Black, Arial',
       color: '#4ecdc4',
@@ -60,12 +59,11 @@ export class WorkshopScene extends Phaser.Scene {
       color: '#aaaacc',
     }).setOrigin(0.5, 0);
 
-    // Rewarded ad: +5 gears (once per session)
     if (!workshopRewardUsedThisSession) {
       const adBtn = new RewardedAdButton(this, GAME_WIDTH - 210, 98, {
         size: 'medium',
-        subtitle: 'WATCH AD FOR BONUS GEARS',
-        rewardLabel: '+5 FREE GEARS',
+        subtitle: t('ad.workshop_subtitle'),
+        rewardLabel: t('ad.free_gears'),
         onAdRequest: () => adManager.showRewarded(),
         onSuccess: () => {
           workshopRewardUsedThisSession = true;
@@ -77,29 +75,24 @@ export class WorkshopScene extends Phaser.Scene {
       adBtn.show();
     }
 
-    // Cards container (scrollable)
     this.cardsContainer = this.add.container(0, 0);
     this.rebuildCards();
 
-    // Scroll mask — clips content to the area between header and footer
     this.maskGraphics = this.make.graphics();
     this.maskGraphics.fillStyle(0xffffff);
     this.maskGraphics.fillRect(0, HEADER_H, GAME_WIDTH, VISIBLE_H);
     this.cardsContainer.setMask(this.maskGraphics.createGeometryMask());
 
-    // Compute max scroll
     const totalRows = Math.ceil(META_UPGRADE_DEFS.length / COLS);
     const contentH = totalRows * CARD_H + (totalRows - 1) * V_GAP;
     this.maxScroll = Math.max(0, contentH - VISIBLE_H);
     this.scrollOffset = 0;
 
-    // Mouse wheel scroll
     this.input.on('wheel', (_ptr: unknown, _gos: unknown, _dx: number, dy: number) => {
       this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + dy * 0.6, 0, this.maxScroll);
       this.cardsContainer.setY(-this.scrollOffset);
     });
 
-    // Scroll hint (only if content overflows)
     if (this.maxScroll > 0) {
       this.add.text(GAME_WIDTH - 20, HEADER_H + VISIBLE_H / 2, '↕', {
         fontSize: '20px',
@@ -108,8 +101,7 @@ export class WorkshopScene extends Phaser.Scene {
       }).setOrigin(1, 0.5);
     }
 
-    // Back button
-    const backBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 14, '[ BACK TO MENU ]', {
+    const backBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 14, t('workshop.back'), {
       fontSize: '20px',
       fontFamily: 'Arial Black, Arial',
       color: '#475569',
@@ -121,7 +113,7 @@ export class WorkshopScene extends Phaser.Scene {
   }
 
   private gearsLabel(): string {
-    return `⚙ ${MetaProgress.getGears()} gears available`;
+    return t('workshop.gears', { gears: MetaProgress.getGears() });
   }
 
   private rebuildCards(): void {
@@ -138,23 +130,22 @@ export class WorkshopScene extends Phaser.Scene {
       const cost = MetaProgress.costForNextLevel(def.id);
       const canAfford = !maxed && MetaProgress.getGears() >= cost;
 
-      // Show current value; for level-0 items preview what level 1 gives
       const bigNumber = def.describeLevel(level === 0 ? 1 : level);
       const currentEffect = def.describeLevel(level);
       const nextEffect = maxed ? undefined : def.describeLevel(level + 1);
 
       const card = new UpgradeCard(this, cx, cy, {
         iconKey: def.iconKey,
-        name: def.name,
+        name: t(`meta.${def.id}`),
         category: def.category,
         bigNumber,
-        description: def.description,
+        description: t(`meta.${def.id}.desc`),
         level: { current: level, max: def.maxLevel },
         currentEffect,
         nextEffect,
         cost: maxed ? undefined : { amount: cost, currency: 'gears' },
         affordable: canAfford,
-        buyLabel: 'UPGRADE',
+        buyLabel: t('workshop.upgrade'),
         variant: 'workshop',
         onBuy: maxed ? undefined : () => {
           if (MetaProgress.purchaseUpgrade(def.id)) {
@@ -167,7 +158,6 @@ export class WorkshopScene extends Phaser.Scene {
       this.cardsContainer.add(card);
     });
 
-    // Re-apply scroll position after rebuild
     this.cardsContainer.setY(-this.scrollOffset);
   }
 }

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../i18n';
 
 export interface RewardedAdConfig {
   rewardLabel: string;
@@ -144,7 +145,7 @@ export class RewardedAdButton extends Phaser.GameObjects.Container {
       targets: this, scaleX: 0.94, scaleY: 0.94,
       duration: 80, yoyo: true, ease: 'Power2',
       onComplete: () => {
-        this.subtitleTxt.setText('Loading...');
+        this.subtitleTxt.setText(t('common.loading'));
         this.rewardTxt.setText('');
         void this.cfg.onAdRequest().then(rewarded => {
           if (rewarded) this.showSuccess(hw, hh);
@@ -165,7 +166,7 @@ export class RewardedAdButton extends Phaser.GameObjects.Container {
     this.glowObj.fillStyle(0x22c55e, 0.3);
     this.glowObj.fillRoundedRect(-hw - 10, -hh - 10, this.bw + 20, this.bh + 20, 14);
 
-    this.subtitleTxt.setText('✓ REWARD COLLECTED').setColor('#ffffff');
+    this.subtitleTxt.setText(t('ad.collected_header')).setColor('#ffffff');
     this.rewardTxt.setText(this.cfg.rewardLabel).setColor('#86efac');
 
     this.spawnParticles();
@@ -178,8 +179,8 @@ export class RewardedAdButton extends Phaser.GameObjects.Container {
   }
 
   private showFailure(): void {
-    this.subtitleTxt.setText('AD UNAVAILABLE').setColor('#ff6666');
-    this.rewardTxt.setText('Try again later');
+    this.subtitleTxt.setText(t('ad.unavailable')).setColor('#ff6666');
+    this.rewardTxt.setText(t('ad.try_later'));
     this.scene.time.delayedCall(2000, () => {
       this.cfg.onFail?.();
       if (this.active) this.hide();

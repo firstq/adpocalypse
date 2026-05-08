@@ -5,6 +5,7 @@ import { AudioManager } from '../systems/AudioManager';
 import { MetaProgress } from '../systems/MetaProgress';
 import { adManager, sdkInstance } from '../systems/sdk';
 import { LeaderboardEntry } from '../systems/YandexSDK';
+import { t, setLanguage, getLanguage, Language } from '../i18n';
 
 export class MenuScene extends Phaser.Scene {
   private audio!: AudioManager;
@@ -31,7 +32,7 @@ export class MenuScene extends Phaser.Scene {
       strokeThickness: 8,
     }).setOrigin(0.5);
 
-    this.add.text(GAME_WIDTH / 2, 285, 'Fight the Internet!', {
+    this.add.text(GAME_WIDTH / 2, 285, t('menu.subtitle'), {
       fontSize: '28px',
       fontFamily: 'Arial',
       color: '#a8dadc',
@@ -39,28 +40,27 @@ export class MenuScene extends Phaser.Scene {
 
     const bestWave = parseInt(localStorage.getItem('bestWave') || '0');
     if (bestWave > 0) {
-      this.add.text(GAME_WIDTH / 2, 320, `Best: Wave ${bestWave}`, {
+      this.add.text(GAME_WIDTH / 2, 320, t('menu.best_wave', { wave: bestWave }), {
         fontSize: '18px',
         fontFamily: 'Arial',
         color: '#ffd700',
       }).setOrigin(0.5);
     }
 
-    new Button(this, GAME_WIDTH / 2, 390, 200, 60, 'PLAY', () => {
+    new Button(this, GAME_WIDTH / 2, 390, 200, 60, t('menu.play'), () => {
       this.scene.start('GameScene');
     });
 
     const gears = MetaProgress.getGears();
-    new Button(this, GAME_WIDTH / 2, 468, 220, 54, `⚙ WORKSHOP (${gears})`, () => {
+    new Button(this, GAME_WIDTH / 2, 468, 220, 54, t('menu.workshop', { gears }), () => {
       MetaProgress.markWorkshopVisited();
       this.scene.start('WorkshopScene');
     }, 0x334466);
 
-    // Leaderboard button
-    const lbBtn = new Button(this, GAME_WIDTH / 2, 540, 220, 50, '🏆 LEADERBOARD', () => {
-      lbBtn.setLabel('Loading...');
+    const lbBtn = new Button(this, GAME_WIDTH / 2, 540, 220, 50, t('menu.leaderboard'), () => {
+      lbBtn.setLabel(t('common.loading'));
       void sdkInstance.getLeaderboardEntries('best_wave', 10).then(entries => {
-        lbBtn.setLabel('🏆 LEADERBOARD');
+        lbBtn.setLabel(t('menu.leaderboard'));
         this.showLeaderboardModal(entries);
       });
     }, 0x1a3a6a);
@@ -70,7 +70,6 @@ export class MenuScene extends Phaser.Scene {
       muteBtn.setLabel(this.muteLabel());
     }, 0x555555);
 
-    // Settings gear icon (top-right)
     const settingsBtn = this.add.text(GAME_WIDTH - 20, 14, '⚙', {
       fontSize: '28px',
       fontFamily: 'Arial',
@@ -80,7 +79,7 @@ export class MenuScene extends Phaser.Scene {
     settingsBtn.on('pointerout',  () => settingsBtn.setAlpha(1));
     settingsBtn.on('pointerdown', () => this.openSettings());
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 40, 'Arrows — Move   |   Space — Attack', {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 40, t('menu.controls'), {
       fontSize: '18px',
       fontFamily: 'Arial',
       color: '#7f8c8d',
@@ -103,7 +102,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private muteLabel(): string {
-    return this.audio.isMuted() ? '🔇 MUTED' : '🔊 SOUND';
+    return this.audio.isMuted() ? t('menu.sound_muted') : t('menu.sound_on');
   }
 
   private openSettings(): void {
@@ -117,18 +116,18 @@ export class MenuScene extends Phaser.Scene {
       .setDepth(100).setInteractive();
     objects.push(dim);
 
-    const panel = this.add.rectangle(cx, cy, 440, 340, 0x12122a)
+    const panel = this.add.rectangle(cx, cy, 440, 430, 0x12122a)
       .setStrokeStyle(2, 0x4ecdc4).setDepth(101);
     objects.push(panel);
 
-    const title = this.add.text(cx, cy - 140, 'SETTINGS', {
+    const title = this.add.text(cx, cy - 190, t('settings.title'), {
       fontSize: '30px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
       stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(102);
     objects.push(title);
 
     // Mute toggle
-    const muteRow = this.add.text(cx, cy - 72, this.muteSettingsLabel(), {
+    const muteRow = this.add.text(cx, cy - 122, this.muteSettingsLabel(), {
       fontSize: '18px', fontFamily: 'Arial', color: '#ecf0f1',
     }).setOrigin(0.5).setDepth(102).setInteractive({ useHandCursor: true });
     objects.push(muteRow);
@@ -140,7 +139,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // SFX Volume label
-    const volLabel = this.add.text(cx, cy - 16, 'SFX Volume', {
+    const volLabel = this.add.text(cx, cy - 66, t('settings.sfx_volume'), {
       fontSize: '15px', fontFamily: 'Arial Black, Arial', color: '#aaaaaa',
     }).setOrigin(0.5).setDepth(102);
     objects.push(volLabel);
@@ -148,7 +147,7 @@ export class MenuScene extends Phaser.Scene {
     // Slider
     const trackW = 280;
     const trackX = cx - trackW / 2;
-    const trackY = cy + 24;
+    const trackY = cy - 26;
 
     const trackBg = this.add.rectangle(cx, trackY, trackW, 8, 0x333333).setDepth(102);
     objects.push(trackBg);
@@ -181,8 +180,44 @@ export class MenuScene extends Phaser.Scene {
     hitArea.on('pointerdown', applyVol);
     hitArea.on('pointermove', (ptr: Phaser.Input.Pointer) => { if (ptr.isDown) applyVol(ptr); });
 
+    // Language toggle
+    const langLabelY = cy + 30;
+    const langLabel = this.add.text(cx, langLabelY, t('settings.language'), {
+      fontSize: '15px', fontFamily: 'Arial Black, Arial', color: '#aaaaaa',
+    }).setOrigin(0.5).setDepth(102);
+    objects.push(langLabel);
+
+    const btnW = 150;
+    const btnH = 44;
+    const langBtnY = langLabelY + 36;
+    const current = getLanguage();
+
+    const buildLangBtn = (lang: Language, bx: number, labelKey: string) => {
+      const isActive = current === lang;
+      const btnBg = this.add.rectangle(bx, langBtnY, btnW, btnH, isActive ? 0x1a3a2a : 0x1a1a2e)
+        .setStrokeStyle(2, isActive ? 0xffd700 : 0x334155).setDepth(102).setInteractive({ useHandCursor: true });
+      const btnText = this.add.text(bx, langBtnY, t(labelKey), {
+        fontSize: '16px', fontFamily: 'Arial Black, Arial',
+        color: isActive ? '#ffd700' : '#aaaaaa',
+      }).setOrigin(0.5).setDepth(103);
+      objects.push(btnBg, btnText);
+
+      if (!isActive) {
+        btnBg.on('pointerover', () => { btnBg.setFillStyle(0x222233); btnText.setColor('#ffffff'); });
+        btnBg.on('pointerout',  () => { btnBg.setFillStyle(0x1a1a2e); btnText.setColor('#aaaaaa'); });
+        btnBg.on('pointerdown', () => {
+          setLanguage(lang);
+          closeAll();
+          this.scene.restart();
+        });
+      }
+    };
+
+    buildLangBtn('ru', cx - 82, 'settings.lang_ru');
+    buildLangBtn('en', cx + 82, 'settings.lang_en');
+
     // Close button
-    const closeBtn = this.add.text(cx, cy + 120, '[ CLOSE ]', {
+    const closeBtn = this.add.text(cx, cy + 175, t('settings.close'), {
       fontSize: '24px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(102).setInteractive({ useHandCursor: true });
@@ -209,13 +244,13 @@ export class MenuScene extends Phaser.Scene {
       .setStrokeStyle(2, 0x4ecdc4).setDepth(101);
     objects.push(panel);
 
-    const title = this.add.text(cx, cy - panelH / 2 + 28, '🏆 LEADERBOARD', {
+    const title = this.add.text(cx, cy - panelH / 2 + 28, t('menu.leaderboard'), {
       fontSize: '26px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
     }).setOrigin(0.5).setDepth(102);
     objects.push(title);
 
     if (entries.length === 0) {
-      const empty = this.add.text(cx, cy, 'Leaderboard unavailable\n(sign in on Yandex to compete)', {
+      const empty = this.add.text(cx, cy, t('menu.leaderboard_unavailable'), {
         fontSize: '16px', fontFamily: 'Arial', color: '#666666', align: 'center',
       }).setOrigin(0.5).setDepth(102);
       objects.push(empty);
@@ -232,7 +267,7 @@ export class MenuScene extends Phaser.Scene {
       });
     }
 
-    const closeBtn = this.add.text(cx, cy + panelH / 2 - 28, '[ CLOSE ]', {
+    const closeBtn = this.add.text(cx, cy + panelH / 2 - 28, t('settings.close'), {
       fontSize: '20px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
     }).setOrigin(0.5).setDepth(102).setInteractive({ useHandCursor: true });
     objects.push(closeBtn);
@@ -269,9 +304,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private muteSettingsLabel(): string {
-    return this.audio.isMuted()
-      ? '🔇 Sound: MUTED  — click to unmute'
-      : '🔊 Sound: ON  — click to mute';
+    return this.audio.isMuted() ? t('settings.sound_muted') : t('settings.sound_on');
   }
 
   private spawnBgDecorations(): void {
