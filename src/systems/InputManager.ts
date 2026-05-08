@@ -13,10 +13,6 @@ export class InputManager {
     right: Phaser.Input.Keyboard.Key;
     up: Phaser.Input.Keyboard.Key;
     down: Phaser.Input.Keyboard.Key;
-    a: Phaser.Input.Keyboard.Key;
-    d: Phaser.Input.Keyboard.Key;
-    w: Phaser.Input.Keyboard.Key;
-    s: Phaser.Input.Keyboard.Key;
     space: Phaser.Input.Keyboard.Key;
   };
 
@@ -41,20 +37,8 @@ export class InputManager {
       right: kbd.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
       up:    kbd.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
       down:  kbd.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
-      a:     kbd.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      d:     kbd.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-      w:     kbd.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      s:     kbd.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       space: kbd.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
     };
-
-    // LMB attack
-    scene.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
-      if (ptr.x > GAME_WIDTH / 2) {
-        this.touchAttackHeld = true;
-      }
-    });
-    scene.input.on('pointerup', () => { this.touchAttackHeld = false; });
 
     if (this.isMobile) {
       this.buildTouchControls();
@@ -84,6 +68,8 @@ export class InputManager {
         this.joystickActive = true;
         this.joystickStart = { x: ptr.x, y: ptr.y };
         this.joystickCurrent = { x: ptr.x, y: ptr.y };
+      } else {
+        this.touchAttackHeld = true;
       }
     });
 
@@ -105,15 +91,17 @@ export class InputManager {
       if (ptr.x < GAME_WIDTH / 2) {
         this.joystickActive = false;
         this.joystickKnob.setPosition(this.joystickBase.x, this.joystickBase.y);
+      } else {
+        this.touchAttackHeld = false;
       }
     });
   }
 
   update(): void {
-    this.left = this.keys.left.isDown || this.keys.a.isDown;
-    this.right = this.keys.right.isDown || this.keys.d.isDown;
-    this.up = this.keys.up.isDown || this.keys.w.isDown;
-    this.down = this.keys.down.isDown || this.keys.s.isDown;
+    this.left = this.keys.left.isDown;
+    this.right = this.keys.right.isDown;
+    this.up = this.keys.up.isDown;
+    this.down = this.keys.down.isDown;
     this.attack = Phaser.Input.Keyboard.JustDown(this.keys.space) || this.touchAttackHeld;
 
     if (this.isMobile && this.joystickActive) {
