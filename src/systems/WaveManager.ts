@@ -112,7 +112,7 @@ export class WaveManager {
       };
     }
 
-    const total = 5 + Math.floor(N * 1.5);
+    const total = 5 + Math.floor(N * 2);
     const autoplay = N >= 8 ? Math.min(2, 1 + Math.floor((N - 8) / 4)) : 0;
     const premium  = N >= 3 ? Math.min(3, 1 + Math.floor((N - 3) / 3)) : 0;
     const cookie   = N >= 2 ? Math.min(5, 1 + Math.floor((N - 2) / 2)) : 0;
@@ -125,9 +125,9 @@ export class WaveManager {
 
   private buildMult(N: number): EnemyMultipliers {
     return {
-      hp:     1 + (N - 1) * 0.15,
-      speed:  1 + (N - 1) * 0.06,
-      damage: 1 + (N - 1) * 0.10,
+      hp:     Math.pow(1.12, N - 1),
+      speed:  Math.min(2.5, Math.pow(1.05, N - 1)),
+      damage: Math.pow(1.08, N - 1),
     };
   }
 
