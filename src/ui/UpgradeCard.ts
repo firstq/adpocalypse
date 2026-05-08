@@ -18,6 +18,8 @@ export interface UpgradeCardConfig {
   currentEffect?: string;
   nextEffect?: string;
   variant?: 'shop' | 'workshop' | 'in-wave';
+  /** When true, cost row shows "✓ PURCHASED" instead of cost + BUY button */
+  purchased?: boolean;
 }
 
 type Variant = 'shop' | 'workshop' | 'in-wave';
@@ -99,7 +101,7 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
 
     // ── Type tag (shop only) ──
     if (variant === 'shop' && config.itemType) {
-      this.buildTypeTag(config.itemType, hw - PAD, -hh + PAD + 11);
+      this.buildTypeTag(config.itemType, hw - 12, -hh + 24);
     }
 
     // ── Big Number ──
@@ -137,8 +139,8 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
 
   private buildTypeTag(itemType: ItemType, rightX: number, centerY: number): void {
     const style = ITEM_TYPE_STYLE[itemType];
-    const tagW = 76;
-    const tagH = 22;
+    const tagW = 80;
+    const tagH = 24;
     const tagX = rightX - tagW / 2;
 
     const tagBg = this.scene.add.rectangle(tagX, centerY, tagW, tagH, style.bg);
@@ -219,9 +221,21 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
   }
 
   private buildCostRow(config: UpgradeCardConfig, centerY: number, hw: number, catColor: number): void {
+    const PAD = 16;
+
+    // Purchased state: clean full-width label, no cost/button
+    if (config.purchased) {
+      const purchasedText = this.scene.add.text(0, centerY, '✓ PURCHASED', {
+        fontSize: '13px',
+        fontFamily: 'Arial Black, Arial',
+        color: '#64748b',
+      }).setOrigin(0.5, 0.5);
+      this.add(purchasedText);
+      return;
+    }
+
     const affordable = config.affordable ?? true;
     const maxed = config.level !== undefined && config.level.current >= config.level.max;
-    const PAD = 16;
 
     const currencyIcon = config.cost!.currency === 'coins' ? '🪙' : '⚙';
     const amountColor = !affordable ? '#ef4444' : '#ffffff';

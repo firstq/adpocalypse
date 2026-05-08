@@ -80,7 +80,7 @@ export class MenuScene extends Phaser.Scene {
     settingsBtn.on('pointerout',  () => settingsBtn.setAlpha(1));
     settingsBtn.on('pointerdown', () => this.openSettings());
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 40, 'WASD / Arrows — Move   |   Space / Click — Attack', {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 40, 'Arrows — Move   |   Space — Attack', {
       fontSize: '18px',
       fontFamily: 'Arial',
       color: '#7f8c8d',

@@ -11,6 +11,7 @@ import { AudioManager } from '../systems/AudioManager';
 import { InputManager } from '../systems/InputManager';
 import { Projectile } from '../entities/Projectile';
 import { MetaProgress } from '../systems/MetaProgress';
+import { RewardedAdButton } from '../ui/RewardedAdButton';
 
 // Persists across GameScene restarts within one browser session
 let loginPromptShownThisSession = false;
@@ -648,11 +649,11 @@ export class GameScene extends Phaser.Scene {
     const cy = GAME_HEIGHT / 2 - 10;
     const panel = this.add.container(cx, cy).setDepth(110);
 
-    const glow = this.add.rectangle(0, 0, 616, 556, 0xe74c3c, 0.1);
-    const bg = this.add.rectangle(0, 0, 600, 540, 0x080808, 0.95);
+    const glow = this.add.rectangle(0, 0, 616, 636, 0xe74c3c, 0.1);
+    const bg = this.add.rectangle(0, 0, 600, 620, 0x080808, 0.95);
     bg.setStrokeStyle(2, 0xe74c3c);
 
-    const title = this.add.text(0, -230, 'GAME OVER', {
+    const title = this.add.text(0, -268, 'GAME OVER', {
       fontSize: '72px',
       fontFamily: 'Arial Black, Arial',
       color: '#e74c3c',
@@ -660,57 +661,55 @@ export class GameScene extends Phaser.Scene {
       strokeThickness: 6,
     }).setOrigin(0.5);
 
-    const waveText = this.add.text(0, -158, `Wave: ${reached}`, {
+    const waveText = this.add.text(0, -196, `Wave: ${reached}`, {
       fontSize: '28px',
       fontFamily: 'Arial Black, Arial',
       color: '#ecf0f1',
     }).setOrigin(0.5);
 
     const recordText = isNewRecord
-      ? this.add.text(0, -124, '🏆 NEW RECORD!', {
+      ? this.add.text(0, -162, '🏆 NEW RECORD!', {
           fontSize: '22px',
           fontFamily: 'Arial Black, Arial',
           color: '#ffd700',
         }).setOrigin(0.5)
-      : this.add.text(0, -124, `Best: ${best}`, {
+      : this.add.text(0, -162, `Best: ${best}`, {
           fontSize: '18px',
           fontFamily: 'Arial',
           color: '#666666',
         }).setOrigin(0.5);
 
-    const coinsText = this.add.text(0, -86, `Coins collected: ${this.gameState.coins}`, {
+    const coinsText = this.add.text(0, -124, `Coins collected: ${this.gameState.coins}`, {
       fontSize: '22px',
       fontFamily: 'Arial',
       color: '#ffd700',
     }).setOrigin(0.5);
 
-    const upgradesText = this.add.text(0, -55, `Upgrades taken: ${this.player.upgradeState.activeUpgrades.length}`, {
+    const upgradesText = this.add.text(0, -93, `Upgrades taken: ${this.player.upgradeState.activeUpgrades.length}`, {
       fontSize: '18px',
       fontFamily: 'Arial',
       color: '#aaaaaa',
     }).setOrigin(0.5);
 
-    // Separator
-    const sep = this.add.rectangle(0, -32, 400, 1, 0x444444);
+    const sep = this.add.rectangle(0, -68, 400, 1, 0x444444);
 
     // Gear count-up animation
     const gearsEarned = this.gearsThisRun;
     const totalGears = MetaProgress.getGears();
     const gearsObj = { value: 0 };
 
-    const gearsText = this.add.text(0, -12, '⚙ Gears earned this run: 0', {
+    const gearsText = this.add.text(0, -48, '⚙ Gears earned this run: 0', {
       fontSize: '20px',
       fontFamily: 'Arial Black, Arial',
       color: '#aaaadd',
     }).setOrigin(0.5);
 
-    const totalText = this.add.text(0, 18, `⚙ Total gears: ${totalGears}`, {
+    const totalText = this.add.text(0, -20, `⚙ Total gears: ${totalGears}`, {
       fontSize: '16px',
       fontFamily: 'Arial',
       color: '#777799',
     }).setOrigin(0.5);
 
-    // Count-up animation
     this.tweens.add({
       targets: gearsObj,
       value: gearsEarned,
@@ -724,31 +723,24 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    // Watch Ad to Continue — only if not used this run
-    const continueItems: Phaser.GameObjects.GameObject[] = [];
+    // Prominent rewarded-ad continue button — shown after panel entrance animation
+    let adButton: RewardedAdButton | undefined;
     if (!this.adContinueUsed) {
-      const continueBg = this.add.rectangle(0, 52, 290, 30, 0x1a4a3a).setStrokeStyle(1, 0x10b981);
-      const continueBtn = this.add.text(0, 52, '▶ WATCH AD TO CONTINUE', {
-        fontSize: '14px',
-        fontFamily: 'Arial Black, Arial',
-        color: '#10b981',
-      }).setOrigin(0.5).setInteractive({ useHandCursor: true });
-      continueBtn.on('pointerover', () => continueBtn.setColor('#ffffff'));
-      continueBtn.on('pointerout', () => continueBtn.setColor('#10b981'));
-      continueBtn.on('pointerdown', () => {
-        continueBtn.disableInteractive().setText('Loading...');
-        void adManager.showRewarded().then(rewarded => {
-          if (rewarded) {
-            this.doAdContinue(panel);
-          } else {
-            continueBtn.setInteractive({ useHandCursor: true }).setText('▶ WATCH AD TO CONTINUE');
-          }
-        });
+      adButton = new RewardedAdButton(this, cx, cy + 55, {
+        size: 'large',
+        subtitle: 'WATCH AD TO CONTINUE',
+        rewardLabel: 'REVIVE AT 50% HP',
+        onAdRequest: () => adManager.showRewarded(),
+        onSuccess: () => {
+          adButton = undefined;
+          this.doAdContinue(panel);
+        },
       });
-      continueItems.push(continueBg, continueBtn);
+      // Delay show until panel entrance animation finishes (~300 ms)
+      this.time.delayedCall(320, () => adButton?.show());
     }
 
-    const tryAgainBtn = this.add.text(0, 90, '[ TRY AGAIN ]', {
+    const tryAgainBtn = this.add.text(0, 168, '[ TRY AGAIN ]', {
       fontSize: '34px',
       fontFamily: 'Arial Black, Arial',
       color: '#4ecdc4',
@@ -759,6 +751,7 @@ export class GameScene extends Phaser.Scene {
     tryAgainBtn.on('pointerover', () => tryAgainBtn.setColor('#ffffff'));
     tryAgainBtn.on('pointerout', () => tryAgainBtn.setColor('#4ecdc4'));
     tryAgainBtn.on('pointerdown', () => {
+      adButton?.hide();
       tryAgainBtn.disableInteractive().setText('...');
       const wasMuted = this.sound.mute;
       this.sound.setMute(true);
@@ -769,8 +762,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Workshop button (pulsing glow if player has unspent gears)
-    const workshopGlowRect = this.add.rectangle(0, 148, 260, 46, 0xffaa00, 0);
-    const workshopBtn = this.add.text(0, 148, '[ ⚙ VISIT WORKSHOP ]', {
+    const workshopGlowRect = this.add.rectangle(0, 228, 260, 46, 0xffaa00, 0);
+    const workshopBtn = this.add.text(0, 228, '[ ⚙ VISIT WORKSHOP ]', {
       fontSize: '26px',
       fontFamily: 'Arial Black, Arial',
       color: '#ffcc66',
@@ -792,11 +785,12 @@ export class GameScene extends Phaser.Scene {
     workshopBtn.on('pointerover', () => workshopBtn.setColor('#ffffff'));
     workshopBtn.on('pointerout', () => workshopBtn.setColor('#ffcc66'));
     workshopBtn.on('pointerdown', () => {
+      adButton?.hide();
       MetaProgress.markWorkshopVisited();
       this.scene.start('WorkshopScene');
     });
 
-    const menuBtn = this.add.text(0, 202, '[ MAIN MENU ]', {
+    const menuBtn = this.add.text(0, 282, '[ MAIN MENU ]', {
       fontSize: '22px',
       fontFamily: 'Arial',
       color: '#888888',
@@ -804,12 +798,12 @@ export class GameScene extends Phaser.Scene {
 
     menuBtn.on('pointerover', () => menuBtn.setColor('#ffffff'));
     menuBtn.on('pointerout', () => menuBtn.setColor('#888888'));
-    menuBtn.on('pointerdown', () => this.scene.start('MenuScene'));
+    menuBtn.on('pointerdown', () => { adButton?.hide(); this.scene.start('MenuScene'); });
 
     // First-time workshop nudge
     const firstTime = !MetaProgress.hasVisitedWorkshop() && gearsEarned > 0;
     const nudge = firstTime
-      ? this.add.text(0, 234, '↑ Spend your gears here to grow stronger!', {
+      ? this.add.text(0, 314, '↑ Spend your gears here to grow stronger!', {
           fontSize: '13px',
           fontFamily: 'Arial',
           color: '#ffaa44',
@@ -820,7 +814,6 @@ export class GameScene extends Phaser.Scene {
       glow, bg,
       title, waveText, recordText, coinsText, upgradesText,
       sep, gearsText, totalText,
-      ...continueItems,
       tryAgainBtn,
       workshopGlowRect, workshopBtn, menuBtn,
       nudge,

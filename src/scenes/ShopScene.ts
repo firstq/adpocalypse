@@ -3,6 +3,8 @@ import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import { GameScene } from './GameScene';
 import { ShopItem, pickShopItems } from '../data/shopItems';
 import { UpgradeCard } from '../ui/UpgradeCard';
+import { RewardedAdButton } from '../ui/RewardedAdButton';
+import { adManager } from '../systems/sdk';
 
 const CARD_W = 280;
 const CARD_H = 260;
@@ -76,12 +78,18 @@ export class ShopScene extends Phaser.Scene {
   private buildFooter(): void {
     const footerY = ROW_CENTERS[1] + CARD_H / 2 + 24;
 
-    // Reroll button
-    this.rerollBg = this.add.rectangle(GAME_WIDTH / 2 - 200, footerY, 230, 40, 0x334433)
+    // Bottom action row — three buttons evenly laid out:
+    // [REFRESH ~230px] [FREE REROLL ~210px] [PROCEED ~230px]  total ~710px centred in 1280
+    const REFRESH_X = 400;
+    const AD_X      = 640;
+    const PROCEED_X = 880;
+
+    // Paid reroll
+    this.rerollBg = this.add.rectangle(REFRESH_X, footerY, 230, 40, 0x334433)
       .setStrokeStyle(2, 0x55aa55)
       .setInteractive({ useHandCursor: true });
 
-    this.rerollLabel = this.add.text(GAME_WIDTH / 2 - 200, footerY, `🎲 REFRESH  🪙 ${this.rerollCost}`, {
+    this.rerollLabel = this.add.text(REFRESH_X, footerY, `🎲 REFRESH  🪙 ${this.rerollCost}`, {
       fontSize: '16px',
       fontFamily: 'Arial Black, Arial',
       color: '#55cc55',
@@ -91,12 +99,28 @@ export class ShopScene extends Phaser.Scene {
     this.rerollBg.on('pointerout',  () => { if (!this.rerollUsed) this.rerollBg.setFillStyle(0x334433); });
     this.rerollBg.on('pointerdown', () => this.doReroll());
 
+    // Free reroll via rewarded ad — inline with the row, subtle pulse
+    const adRerollBtn = new RewardedAdButton(this, AD_X, footerY, {
+      size: 'small',
+      subtitle: 'WATCH AD TO REROLL',
+      rewardLabel: 'FREE REROLL',
+      pulseScale: 1.02,
+      pulseDuration: 2000,
+      onAdRequest: () => adManager.showRewarded(),
+      onSuccess: () => {
+        this.purchasedIds = new Set();
+        this.currentItems = pickShopItems(this.nextWave - 1);
+        this.rebuildCards();
+      },
+    });
+    adRerollBtn.show();
+
     // Proceed button
-    const proceedBg = this.add.rectangle(GAME_WIDTH / 2 + 200, footerY, 230, 40, 0x1e3a2f)
+    const proceedBg = this.add.rectangle(PROCEED_X, footerY, 230, 40, 0x1e3a2f)
       .setStrokeStyle(2, 0x10b981)
       .setInteractive({ useHandCursor: true });
 
-    const proceedLabel = this.add.text(GAME_WIDTH / 2 + 200, footerY, `PROCEED  →  Wave ${this.nextWave}`, {
+    const proceedLabel = this.add.text(PROCEED_X, footerY, `PROCEED  →  Wave ${this.nextWave}`, {
       fontSize: '16px',
       fontFamily: 'Arial Black, Arial',
       color: '#10b981',
@@ -106,7 +130,7 @@ export class ShopScene extends Phaser.Scene {
     proceedBg.on('pointerout',  () => { proceedBg.setFillStyle(0x1e3a2f); proceedLabel.setColor('#10b981'); });
     proceedBg.on('pointerdown', () => this.doProceed());
 
-    this.add.text(GAME_WIDTH / 2, footerY + 34, 'Buy multiple items — anything not purchased is discarded.', {
+    this.add.text(GAME_WIDTH / 2, footerY + 38, 'Buy multiple items — anything not purchased is discarded.', {
       fontSize: '13px',
       fontFamily: 'Arial',
       color: '#475569',
@@ -135,13 +159,13 @@ export class ShopScene extends Phaser.Scene {
         itemType: item.rarity as 'consumable' | 'upgrade' | 'rare',
         cost: { amount: item.cost, currency: 'coins' },
         affordable,
-        buyLabel: bought ? 'BOUGHT' : 'BUY',
+        purchased: bought,
         variant: 'shop',
         onBuy: bought ? undefined : () => this.doBuy(item),
       });
 
       if (bought) {
-        card.setAlpha(0.55);
+        card.setAlpha(0.7);
       }
 
       this.cardsContainer.add(card);

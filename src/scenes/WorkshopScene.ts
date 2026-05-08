@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from '../config';
 import { MetaProgress, META_UPGRADE_DEFS } from '../systems/MetaProgress';
 import { UpgradeCard } from '../ui/UpgradeCard';
+import { RewardedAdButton } from '../ui/RewardedAdButton';
 import { adManager } from '../systems/sdk';
 
 // Once per browser session
@@ -22,7 +23,7 @@ const COL_CENTERS = [
   LEFT_EDGE + CARD_W * 2 + H_GAP * 2 + CARD_W / 2,
 ];
 
-const HEADER_H = 96;   // space reserved for header
+const HEADER_H = 128;  // space reserved for header (extra room for ad button)
 const FOOTER_H = 52;   // space reserved for back button
 const VISIBLE_H = GAME_HEIGHT - HEADER_H - FOOTER_H;
 const GRID_TOP = HEADER_H + CARD_H / 2; // y of first card centre
@@ -61,29 +62,19 @@ export class WorkshopScene extends Phaser.Scene {
 
     // Rewarded ad: +5 gears (once per session)
     if (!workshopRewardUsedThisSession) {
-      const adBtn = this.add.text(GAME_WIDTH - 16, 62, '▶ AD: +5 ⚙', {
-        fontSize: '14px',
-        fontFamily: 'Arial Black, Arial',
-        color: '#10b981',
-      }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-
-      adBtn.on('pointerover', () => adBtn.setColor('#ffffff'));
-      adBtn.on('pointerout',  () => adBtn.setColor('#10b981'));
-      adBtn.on('pointerdown', () => {
-        if (workshopRewardUsedThisSession) return;
-        adBtn.disableInteractive().setText('Loading...');
-        void adManager.showRewarded().then(rewarded => {
-          if (rewarded) {
-            workshopRewardUsedThisSession = true;
-            MetaProgress.addGears(5);
-            this.gearsText.setText(this.gearsLabel());
-            adBtn.setText('✓ +5 ⚙ added');
-            this.rebuildCards();
-          } else {
-            adBtn.setInteractive({ useHandCursor: true }).setText('▶ AD: +5 ⚙');
-          }
-        });
+      const adBtn = new RewardedAdButton(this, GAME_WIDTH - 210, 98, {
+        size: 'medium',
+        subtitle: 'WATCH AD FOR BONUS GEARS',
+        rewardLabel: '+5 FREE GEARS',
+        onAdRequest: () => adManager.showRewarded(),
+        onSuccess: () => {
+          workshopRewardUsedThisSession = true;
+          MetaProgress.addGears(5);
+          this.gearsText.setText(this.gearsLabel());
+          this.rebuildCards();
+        },
       });
+      adBtn.show();
     }
 
     // Cards container (scrollable)
