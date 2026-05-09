@@ -20,6 +20,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   readonly coinDrop: number;
   readonly knockback: number;
   hitThisSwing: boolean = false;
+  public isBossType: boolean = false;
   private premiumEnemy = false;
 
   protected gameScene: GameScene;

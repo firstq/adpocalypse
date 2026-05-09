@@ -157,7 +157,7 @@
   "shopitem.time_slow": "Замедление времени",
   "shopitem.time_slow.desc": "Замедление врагов на 8 сек. Клавиша [4].",
   "shopitem.bomb": "Бомба",
-  "shopitem.bomb.desc": "50 урона всем врагам на экране. Клавиша [1].",
+  "shopitem.bomb.desc": "Убивает всех врагов на экране. Клавиша [1].",
   "shopitem.damage_boost_shop": "Урон+",
   "shopitem.damage_boost_shop.desc": "+10% к урону на этот забег",
   "shopitem.hp_boost_shop": "Запас HP",

@@ -25,8 +25,8 @@ export class AlgorithmBoss extends Boss {
   private posRecordTimer = 0;
   private shieldOrbs: ShieldOrb[] = [];
 
-  constructor(scene: GameScene, x: number, y: number, hp: number, waveNumber: number) {
-    super(scene, x, y, hp, 55, 20, 80, 15, waveNumber, 150);
+  constructor(scene: GameScene, x: number, y: number, hp: number, waveNumber: number, contactDamageOverride = 20) {
+    super(scene, x, y, hp, 55, contactDamageOverride, 80, 15, waveNumber, 150);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(110, 110);
     this.shootTimer = scene.time.now + 3000; // grace period after intro

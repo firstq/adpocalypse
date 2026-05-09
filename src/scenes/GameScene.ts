@@ -14,6 +14,7 @@ import { Projectile } from '../entities/Projectile';
 import { MetaProgress } from '../systems/MetaProgress';
 import { RewardedAdButton } from '../ui/RewardedAdButton';
 import { InventoryManager, ConsumableType, PlayerInventory } from '../systems/InventoryManager';
+import { DamageTracker } from '../systems/DamageTracker';
 
 // Persists across GameScene restarts within one browser session
 let loginPromptShownThisSession = false;
@@ -54,6 +55,9 @@ export class GameScene extends Phaser.Scene {
   private firstConsumableBought = false;
   private pendingInventoryTutorial = false;
 
+  public damageTracker!: DamageTracker;
+  private shopVisitCount = 0;
+
   private waveCoinsEarned = 0;
   private adContinueUsed = false;
   private gameOverOverlay: Phaser.GameObjects.Rectangle | null = null;
@@ -90,6 +94,8 @@ export class GameScene extends Phaser.Scene {
     this.pendingInventoryTutorial = false;
 
     this.inventory = new InventoryManager();
+    this.damageTracker = new DamageTracker();
+    this.shopVisitCount = 0;
 
     const bestWave = parseInt(localStorage.getItem('bestWave') || '0');
 
@@ -385,6 +391,7 @@ export class GameScene extends Phaser.Scene {
         }
         enemy.takeDamage(damage);
         enemy.hitThisSwing = true;
+        this.damageTracker.recordHit(damage);
         this.audio.playSFX('sfx_hit', { detune: Phaser.Math.Between(-100, 100) });
         this.cameras.main.shake(80, 0.005);
         this.triggerHitstop();
@@ -394,6 +401,7 @@ export class GameScene extends Phaser.Scene {
         if (this.player.upgradeState.doubleStrikeChance > 0 &&
             Math.random() < this.player.upgradeState.doubleStrikeChance) {
           enemy.takeDamage(damage);
+          this.damageTracker.recordHit(damage);
           this.showDoubleText(enemy.x, enemy.y);
         }
       }
@@ -576,6 +584,7 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const doTransition = () => {
       if (isShopWave) {
+        this.shopVisitCount++;
         this.registry.set('shopNextWave', nextWave);
         this.scene.pause();
         this.scene.launch('ShopScene');
@@ -963,6 +972,8 @@ export class GameScene extends Phaser.Scene {
   // ── Shop integration ────────────────────────────────────────────────────────
 
   getCoins(): number { return this.gameState.coins; }
+  getShopVisitCount(): number { return this.shopVisitCount; }
+  getCurrentWave(): number { return this.currentWave; }
 
   spendCoins(amount: number): boolean {
     if (this.gameState.coins < amount) return false;
@@ -1034,23 +1045,37 @@ export class GameScene extends Phaser.Scene {
   }
 
   private doActivateBomb(): void {
-    const damage = Math.round(50 * (1 + this.currentWave * 0.05));
-    this.enemies.getChildren().forEach(e => {
-      const enemy = e as Enemy;
-      if (enemy.active) enemy.takeDamage(damage);
-    });
-    this.cameras.main.shake(300, 0.01);
+    // Full-screen white flash
+    const screenFlash = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0.7).setDepth(60);
+    this.tweens.add({ targets: screenFlash, alpha: 0, duration: 200, ease: 'Linear', onComplete: () => screenFlash.destroy() });
+
+    this.cameras.main.shake(500, 0.02);
     this.audio.playSFX('sfx_wave_complete');
 
-    // Expanding ring flash from player
-    const flash = this.add.circle(this.player.x, this.player.y, 10, 0xffffff, 0.85).setDepth(30);
+    // Kill non-boss enemies instantly (staggered 0-100ms); chip boss for 5% max HP
+    const allEnemies = this.enemies.getChildren().slice();
+    allEnemies.forEach(e => {
+      const enemy = e as Enemy;
+      if (!enemy.active) return;
+      if (enemy.isBossType) {
+        enemy.takeDamage(Math.round(enemy.maxHp * 0.05));
+      } else {
+        const stagger = Math.floor(Math.random() * 100);
+        this.time.delayedCall(stagger, () => {
+          if (enemy.active) enemy.takeDamage(enemy.hp);
+        });
+      }
+    });
+
+    // Expanding ring from player
+    const ring = this.add.circle(this.player.x, this.player.y, 10, 0xffffff, 0.85).setDepth(30);
     this.tweens.add({
-      targets: flash,
+      targets: ring,
       scaleX: 35, scaleY: 25,
       alpha: 0,
       duration: 600,
       ease: 'Power2',
-      onComplete: () => flash.destroy(),
+      onComplete: () => ring.destroy(),
     });
 
     // Radial particles

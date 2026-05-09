@@ -20,8 +20,8 @@ export class SpamBoss extends Boss {
   // Track envelope tentacle graphics (so we can tween them)
   private tentacleLines: Phaser.GameObjects.Rectangle[] = [];
 
-  constructor(scene: GameScene, x: number, y: number, hp: number, waveNumber: number) {
-    super(scene, x, y, hp, 40, 18, 72, 20, waveNumber);
+  constructor(scene: GameScene, x: number, y: number, hp: number, waveNumber: number, contactDamageOverride = 18) {
+    super(scene, x, y, hp, 40, contactDamageOverride, 72, 20, waveNumber);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(130, 100);
     this.shootTimer = scene.time.now + 3000;

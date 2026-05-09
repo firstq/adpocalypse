@@ -25,8 +25,8 @@ export class ScrollBoss extends Boss {
   // Visual segments that fade as HP drops in phase 1
   private postSegments: Phaser.GameObjects.Container[] = [];
 
-  constructor(scene: GameScene, x: number, y: number, hp: number, waveNumber: number) {
-    super(scene, x, y, hp, 35, 22, 85, 25, waveNumber);
+  constructor(scene: GameScene, x: number, y: number, hp: number, waveNumber: number, contactDamageOverride = 22) {
+    super(scene, x, y, hp, 35, contactDamageOverride, 85, 25, waveNumber);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setSize(110, 140);
     this.shootTimer = scene.time.now + 3000;

@@ -55,3 +55,29 @@ export const UPGRADE_POOL: UpgradeDef[] = [
   { id: 'double_coins', icon: '💰',  iconKey: 'icon-double-coins',  category: 'economy',  bigNumber: '×2',      label: 'Double Coins',   description: 'All coin pickups are worth double.' },
   { id: 'wide_swing',   icon: '🌀',  iconKey: 'icon-sharper-steel', category: 'attack',   bigNumber: '+30%',    label: 'Wide Swing',     description: 'Attack arc 30% wider and longer.' },
 ];
+
+export const UPGRADE_DIMINISHING: Record<string, number[]> = {
+  damage_boost:  [25, 20, 15, 10, 5, 1, 1, 1],
+  speed_boost:   [20, 15, 10, 5, 1],
+  attack_speed:  [20, 15, 10, 5, 1],
+  wide_swing:    [30, 25, 20, 15, 10, 5, 1],
+  crit:          [15, 12, 10, 8, 5, 3, 1],
+  double_coins:  [25, 20, 15, 10, 5, 1],
+  magnet:        [50, 40, 30, 20, 10, 5],
+};
+
+export function getNextUpgradeValue(upgradeId: string, timesPicked: number): number {
+  const sequence = UPGRADE_DIMINISHING[upgradeId];
+  if (!sequence) return 0;
+  return sequence[Math.min(timesPicked, sequence.length - 1)];
+}
+
+export function getUpgradeBigNumber(upgradeId: string, timesPicked: number): string {
+  if (!UPGRADE_DIMINISHING[upgradeId]) {
+    return UPGRADE_POOL.find(u => u.id === upgradeId)?.bigNumber ?? '';
+  }
+  const val = getNextUpgradeValue(upgradeId, timesPicked);
+  if (upgradeId === 'attack_speed') return `-${val}%`;
+  if (upgradeId === 'magnet') return `+${val}px`;
+  return `+${val}%`;
+}

@@ -34,6 +34,14 @@ export class ShopScene extends Phaser.Scene {
 
   private get rerollCost(): number { return 10 + (this.nextWave - 1) * 2; }
 
+  private getItemCost(item: ShopItem): number {
+    const gs = this.scene.get('GameScene') as GameScene;
+    const wave = this.nextWave - 1;
+    const visit = gs.getShopVisitCount();
+    const mult = wave >= 20 ? Math.pow(1.30, visit) : Math.pow(1.07, visit);
+    return Math.ceil(item.cost * mult);
+  }
+
   private coinLabel!: Phaser.GameObjects.Text;
   private cardsContainer!: Phaser.GameObjects.Container;
   private rerollBg!: Phaser.GameObjects.Rectangle;
@@ -145,7 +153,8 @@ export class ShopScene extends Phaser.Scene {
       const cx = COL_CENTERS[col];
       const cy = ROW_CENTERS[row];
       const bought = this.purchasedIds.has(item.id);
-      const affordable = !bought && coins >= item.cost;
+      const inflatedCost = this.getItemCost(item);
+      const affordable = !bought && coins >= inflatedCost;
 
       const card = new UpgradeCard(this, cx, cy, {
         iconKey: item.iconKey,
@@ -154,11 +163,11 @@ export class ShopScene extends Phaser.Scene {
         bigNumber: bought ? '✓' : item.bigNumber,
         description: t(`shopitem.${item.id}.desc`),
         itemType: item.rarity as 'consumable' | 'upgrade' | 'rare',
-        cost: { amount: item.cost, currency: 'coins' },
+        cost: { amount: inflatedCost, currency: 'coins' },
         affordable,
         purchased: bought,
         variant: 'shop',
-        onBuy: bought ? undefined : () => this.doBuy(item),
+        onBuy: bought ? undefined : () => this.doBuy(item, inflatedCost),
       });
 
       if (bought) {
@@ -171,9 +180,10 @@ export class ShopScene extends Phaser.Scene {
     this.refreshCoinLabel();
   }
 
-  private doBuy(item: ShopItem): void {
+  private doBuy(item: ShopItem, cost?: number): void {
     const gs = this.scene.get('GameScene') as GameScene;
-    if (!gs.spendCoins(item.cost)) return;
+    const finalCost = cost ?? this.getItemCost(item);
+    if (!gs.spendCoins(finalCost)) return;
     gs.audio.playSFX('sfx_purchase');
 
     if (item.manualActivation && item.consumableKey) {

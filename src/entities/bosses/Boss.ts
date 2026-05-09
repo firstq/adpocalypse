@@ -33,6 +33,7 @@ export abstract class Boss extends Enemy {
   ) {
     super(scene, x, y, hp, speed, contactDamage, contactRadius, coinDrop, knockback);
     this.waveNumber = waveNumber;
+    this.isBossType = true;
 
     // Register boss HP bar in UIScene
     const ui = this.getUI();

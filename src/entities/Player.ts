@@ -3,6 +3,7 @@ import {
   PLAYER_HP, PLAYER_SPEED, PLAYER_MELEE_DAMAGE,
   PLAYER_INVINCIBILITY_MS, PLAYER_ATTACK_DURATION_MS,
   GAME_WIDTH,
+  getNextUpgradeValue,
 } from '../config';
 import { InputManager } from '../systems/InputManager';
 import { GameScene } from '../scenes/GameScene';
@@ -130,6 +131,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   applyUpgrade(id: string): void {
     const u = this.upgradeState;
+    const timesPicked = u.activeUpgrades.filter(upg => upg === id).length;
     u.activeUpgrades.push(id);
 
     switch (id) {
@@ -140,37 +142,51 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       case 'hp_restore':
         this.hp = this.maxHp;
         break;
-      case 'damage_boost':
-        u.damageMult *= 1.25;
+      case 'damage_boost': {
+        const pct = getNextUpgradeValue('damage_boost', timesPicked) / 100;
+        u.damageMult *= (1 + pct);
         this.meleeDamage = Math.round(PLAYER_MELEE_DAMAGE * u.damageMult);
         break;
-      case 'speed_boost':
-        u.speedMult *= 1.2;
+      }
+      case 'speed_boost': {
+        const pct = getNextUpgradeValue('speed_boost', timesPicked) / 100;
+        u.speedMult *= (1 + pct);
         break;
-      case 'attack_speed':
-        u.cooldownMult = Math.max(0.25, u.cooldownMult * 0.75);
+      }
+      case 'attack_speed': {
+        const pct = getNextUpgradeValue('attack_speed', timesPicked) / 100;
+        u.cooldownMult = Math.max(0.25, u.cooldownMult * (1 - pct));
         break;
+      }
       case 'lifesteal':
         u.lifestealHp += 5;
         break;
-      case 'crit':
-        u.critChance = Math.min(0.75, u.critChance + 0.25);
+      case 'crit': {
+        const pct = getNextUpgradeValue('crit', timesPicked) / 100;
+        u.critChance = Math.min(0.75, u.critChance + pct);
         break;
-      case 'magnet':
-        u.magnetRadius += 350;
+      }
+      case 'magnet': {
+        const px = getNextUpgradeValue('magnet', timesPicked);
+        u.magnetRadius += px;
         break;
+      }
       case 'thorns':
         u.thorns += 5;
         break;
       case 'regen':
         u.regenRate += 1;
         break;
-      case 'double_coins':
-        u.coinMult *= 2;
+      case 'double_coins': {
+        const pct = getNextUpgradeValue('double_coins', timesPicked) / 100;
+        u.coinMult += pct;
         break;
-      case 'wide_swing':
-        u.swingMult = Math.min(2, u.swingMult + 0.3);
+      }
+      case 'wide_swing': {
+        const pct = getNextUpgradeValue('wide_swing', timesPicked) / 100;
+        u.swingMult = Math.min(2, u.swingMult + pct);
         break;
+      }
     }
   }
 

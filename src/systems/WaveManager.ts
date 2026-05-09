@@ -85,22 +85,40 @@ export class WaveManager {
   }
 
   private spawnBoss(waveNumber: number): void {
-    // bossType cycles: 0=Algorithm, 1=Spam, 2=Scroll
-    const bossIndex = Math.floor(waveNumber / 5);        // 1, 2, 3, 4, 5…
-    const bossType = (bossIndex - 1) % 3;                // 0, 1, 2, 0, 1…
-    const cycle = Math.floor((bossIndex - 1) / 3);       // 0, 0, 0, 1, 1…
+    const bossIndex = Math.floor(waveNumber / 5);
+    const bossType = (bossIndex - 1) % 3;
 
     const cx = GAME_WIDTH / 2;
-    const bossHP = (base: number) => Math.round(base * (1 + cycle * 1.5));
+    const player = this.scene.player;
+    const tracker = this.scene.damageTracker;
+
+    const calcHP = (hpMult: number): number => {
+      let hp: number;
+      if (waveNumber <= 5) {
+        hp = player.meleeDamage * 35;
+      } else {
+        hp = tracker.getAverageHit() * 40;
+      }
+      hp *= hpMult;
+      const minHP = 200 + waveNumber * 30;
+      const maxHP = 5000 + waveNumber * 200;
+      return Math.round(Math.max(minHP, Math.min(maxHP, hp)));
+    };
+
+    const calcDamage = (baseDamage: number, damageMult: number): number => {
+      const idealDamage = player.maxHp / 5;
+      return Math.max(Math.round(baseDamage * damageMult), Math.round(idealDamage));
+    };
+
     switch (bossType) {
-      case 0:
-        new AlgorithmBoss(this.scene, cx, 200, bossHP(300), waveNumber);
+      case 0: // AlgorithmBoss — glass cannon: 0.9× HP, 1.2× damage
+        new AlgorithmBoss(this.scene, cx, 200, calcHP(0.9), waveNumber, calcDamage(20, 1.2));
         break;
-      case 1:
-        new SpamBoss(this.scene, cx, 170, bossHP(400), waveNumber);
+      case 1: // SpamBoss — tank: 1.2× HP, 0.8× damage
+        new SpamBoss(this.scene, cx, 170, calcHP(1.2), waveNumber, calcDamage(18, 0.8));
         break;
-      case 2:
-        new ScrollBoss(this.scene, cx, 200, bossHP(500), waveNumber);
+      case 2: // ScrollBoss — balanced
+        new ScrollBoss(this.scene, cx, 200, calcHP(1.0), waveNumber, calcDamage(22, 1.0));
         break;
     }
   }
@@ -113,9 +131,24 @@ export class WaveManager {
       };
     }
 
+    // Late game (wave 20+): ranged-heavy with 15% fewer total enemies
+    if (N >= 20) {
+      const base = Math.floor((5 + Math.floor(N * 2)) * 0.85);
+      const autoplay = Math.floor(base * (0.25 + Math.random() * 0.10));
+      const premium  = Math.floor(base * (0.15 + Math.random() * 0.10));
+      const remaining = base - autoplay - premium;
+      const spam   = Math.min(8, Math.round(remaining * 0.4));
+      const cookie = Math.min(5, Math.round(remaining * 0.3));
+      const popup  = Math.max(3, remaining - spam - cookie);
+      return { popupClose: popup, cookieBanner: cookie, premiumPopup: premium, spamEmail: spam, autoplayVideo: autoplay, isBoss: false };
+    }
+
     const total = 5 + Math.floor(N * 2);
-    const autoplay = N >= 8 ? Math.min(2, 1 + Math.floor((N - 8) / 4)) : 0;
-    const premium  = N >= 3 ? Math.min(3, 1 + Math.floor((N - 3) / 3)) : 0;
+    // Mid game (wave 11-19): raise ranged caps
+    const autoplayCap = N >= 11 ? 5 : 2;
+    const premiumCap  = N >= 11 ? 6 : 3;
+    const autoplay = N >= 8 ? Math.min(autoplayCap, 1 + Math.floor((N - 8) / 3)) : 0;
+    const premium  = N >= 3 ? Math.min(premiumCap,  1 + Math.floor((N - 3) / 2)) : 0;
     const cookie   = N >= 2 ? Math.min(5, 1 + Math.floor((N - 2) / 2)) : 0;
     const spam     = N >= 4 ? Math.min(8, 3 + Math.floor((N - 4) / 2)) : 0;
     const special  = autoplay + premium + cookie + spam;

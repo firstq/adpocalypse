@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, UPGRADE_POOL } from '../config';
+import { GAME_WIDTH, GAME_HEIGHT, UPGRADE_POOL, UPGRADE_DIMINISHING, getUpgradeBigNumber } from '../config';
 import { GameScene } from './GameScene';
 import { UpgradeCard } from '../ui/UpgradeCard';
 import { RewardedAdButton } from '../ui/RewardedAdButton';
@@ -53,6 +53,9 @@ export class UpgradeScene extends Phaser.Scene {
     const pool     = Phaser.Utils.Array.Shuffle([...UPGRADE_POOL]);
     const selected = pool.slice(0, numCards);
 
+    const gs = this.scene.get('GameScene') as GameScene;
+    const activeUpgrades = gs.player.upgradeState.activeUpgrades;
+
     const cardW  = 240;
     const gap    = numCards >= 4 ? 24 : 36;
     const totalW = numCards * cardW + (numCards - 1) * gap;
@@ -60,17 +63,21 @@ export class UpgradeScene extends Phaser.Scene {
     const cardY  = GAME_HEIGHT / 2 + 60;
 
     selected.forEach((upg, i) => {
+      const timesPicked = activeUpgrades.filter(id => id === upg.id).length;
+      const bigNumber = getUpgradeBigNumber(upg.id, timesPicked);
+      const isDiminishing = timesPicked >= 4 && UPGRADE_DIMINISHING[upg.id] !== undefined;
+      const description = t(`inwave.${upg.id}.desc`) + (isDiminishing ? ' (diminishing)' : '');
+
       new UpgradeCard(this, startX + i * (cardW + gap), cardY, {
         iconKey:     upg.iconKey,
         name:        t(`inwave.${upg.id}`),
         category:    upg.category,
-        bigNumber:   upg.bigNumber,
-        description: t(`inwave.${upg.id}.desc`),
+        bigNumber,
+        description,
         variant:     'in-wave',
         buyLabel:    t('wave.upgrade_choose'),
         onBuy: () => {
           adButton?.hide();
-          const gs = this.scene.get('GameScene') as GameScene;
           gs.audio.playSFX('sfx_upgrade_select');
           gs.player.applyUpgrade(upg.id);
           this.resumeGame(nextWave);
