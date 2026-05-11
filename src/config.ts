@@ -62,7 +62,7 @@ export const UPGRADE_DIMINISHING: Record<string, number[]> = {
   attack_speed:  [20, 15, 10, 5, 1],
   wide_swing:    [30, 25, 20, 15, 10, 5, 1],
   crit:          [15, 12, 10, 8, 5, 3, 1],
-  double_coins:  [25, 20, 15, 10, 5, 1],
+
   magnet:        [50, 40, 30, 20, 10, 5],
 };
 

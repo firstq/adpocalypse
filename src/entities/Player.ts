@@ -177,11 +177,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       case 'regen':
         u.regenRate += 1;
         break;
-      case 'double_coins': {
-        const pct = getNextUpgradeValue('double_coins', timesPicked) / 100;
-        u.coinMult += pct;
+      case 'double_coins':
+        u.coinMult *= 2;
         break;
-      }
       case 'wide_swing': {
         const pct = getNextUpgradeValue('wide_swing', timesPicked) / 100;
         u.swingMult = Math.min(2, u.swingMult + pct);
