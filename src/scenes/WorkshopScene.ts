@@ -35,6 +35,8 @@ export class WorkshopScene extends Phaser.Scene {
   private scrollOffset = 0;
   private maxScroll = 0;
   private maskGraphics!: Phaser.GameObjects.Graphics;
+  private scrollUpBg!: Phaser.GameObjects.Arc;
+  private scrollDownBg!: Phaser.GameObjects.Arc;
 
   constructor() {
     super({ key: 'WorkshopScene' });
@@ -89,17 +91,10 @@ export class WorkshopScene extends Phaser.Scene {
     this.scrollOffset = 0;
 
     this.input.on('wheel', (_ptr: unknown, _gos: unknown, _dx: number, dy: number) => {
-      this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + dy * 0.6, 0, this.maxScroll);
-      this.cardsContainer.setY(-this.scrollOffset);
+      this.doScroll(dy * 0.6);
     });
 
-    if (this.maxScroll > 0) {
-      this.add.text(GAME_WIDTH - 20, HEADER_H + VISIBLE_H / 2, '↕', {
-        fontSize: '20px',
-        fontFamily: 'Arial',
-        color: '#334155',
-      }).setOrigin(1, 0.5);
-    }
+    this.addScrollButtons();
 
     const backBtn = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 14, t('workshop.back'), {
       fontSize: '20px',
@@ -114,6 +109,68 @@ export class WorkshopScene extends Phaser.Scene {
 
   private gearsLabel(): string {
     return t('workshop.gears', { gears: MetaProgress.getGears() });
+  }
+
+  private doScroll(delta: number): void {
+    this.scrollOffset = Phaser.Math.Clamp(this.scrollOffset + delta, 0, this.maxScroll);
+    this.cardsContainer.setY(-this.scrollOffset);
+    this.updateScrollBtnAlpha();
+  }
+
+  private updateScrollBtnAlpha(): void {
+    if (!this.scrollUpBg) return;
+    this.scrollUpBg.setAlpha(this.scrollOffset <= 0 ? 0.25 : 1);
+    this.scrollDownBg.setAlpha(this.scrollOffset >= this.maxScroll ? 0.25 : 1);
+  }
+
+  private addScrollButtons(): void {
+    if (this.maxScroll <= 0) return;
+
+    const btnX = GAME_WIDTH - 36;
+    const upY   = HEADER_H + 58;
+    const downY = GAME_HEIGHT - FOOTER_H - 58;
+    const SCROLL_STEP = 160;
+
+    const makeBtn = (x: number, y: number, label: string, dir: 1 | -1): Phaser.GameObjects.Arc => {
+      const bg = this.add.circle(x, y, 30, 0xffffff, 0.18)
+        .setDepth(50)
+        .setInteractive({ useHandCursor: true });
+      this.add.text(x, y, label, {
+        fontSize: '22px',
+        fontFamily: 'Arial',
+        color: '#c0cce0',
+      }).setOrigin(0.5, 0.5).setDepth(51);
+
+      let initialTimer: Phaser.Time.TimerEvent | null = null;
+      let rapidTimer:   Phaser.Time.TimerEvent | null = null;
+
+      const stop = () => {
+        initialTimer?.remove(); initialTimer = null;
+        rapidTimer?.remove();   rapidTimer   = null;
+        bg.setFillStyle(0xffffff, 0.18);
+      };
+
+      bg.on('pointerover', () => bg.setFillStyle(0xffffff, 0.28));
+      bg.on('pointerout',  stop);
+      bg.on('pointerup',   stop);
+      bg.on('pointerdown', () => {
+        bg.setFillStyle(0xffffff, 0.40);
+        this.doScroll(dir * SCROLL_STEP);
+        initialTimer = this.time.delayedCall(380, () => {
+          rapidTimer = this.time.addEvent({
+            delay: 80,
+            callback: () => this.doScroll(dir * SCROLL_STEP),
+            loop: true,
+          });
+        });
+      });
+
+      return bg;
+    };
+
+    this.scrollUpBg   = makeBtn(btnX, upY,   '▲', -1);
+    this.scrollDownBg = makeBtn(btnX, downY,  '▼',  1);
+    this.updateScrollBtnAlpha();
   }
 
   private rebuildCards(): void {

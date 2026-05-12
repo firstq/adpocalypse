@@ -20,6 +20,8 @@ export class InputManager {
   private joystickActive = false;
   private joystickStart = { x: 0, y: 0 };
   private joystickCurrent = { x: 0, y: 0 };
+  private joystickPointer: Phaser.Input.Pointer | null = null;
+  private attackPointer: Phaser.Input.Pointer | null = null;
 
   // Touch UI graphics
   private joystickBase!: Phaser.GameObjects.Arc;
@@ -64,17 +66,19 @@ export class InputManager {
       .setDepth(100).setScrollFactor(0);
 
     this.scene.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
-      if (ptr.x < GAME_WIDTH / 2) {
+      if (ptr.x < GAME_WIDTH / 2 && this.joystickPointer === null) {
+        this.joystickPointer = ptr;
         this.joystickActive = true;
         this.joystickStart = { x: ptr.x, y: ptr.y };
         this.joystickCurrent = { x: ptr.x, y: ptr.y };
-      } else {
+      } else if (ptr.x >= GAME_WIDTH / 2 && this.attackPointer === null) {
+        this.attackPointer = ptr;
         this.touchAttackHeld = true;
       }
     });
 
     this.scene.input.on('pointermove', (ptr: Phaser.Input.Pointer) => {
-      if (this.joystickActive && ptr.isDown && ptr.x < GAME_WIDTH / 2) {
+      if (ptr === this.joystickPointer) {
         this.joystickCurrent = { x: ptr.x, y: ptr.y };
         const dx = ptr.x - this.joystickStart.x;
         const dy = ptr.y - this.joystickStart.y;
@@ -88,10 +92,12 @@ export class InputManager {
     });
 
     this.scene.input.on('pointerup', (ptr: Phaser.Input.Pointer) => {
-      if (ptr.x < GAME_WIDTH / 2) {
+      if (ptr === this.joystickPointer) {
+        this.joystickPointer = null;
         this.joystickActive = false;
         this.joystickKnob.setPosition(this.joystickBase.x, this.joystickBase.y);
-      } else {
+      } else if (ptr === this.attackPointer) {
+        this.attackPointer = null;
         this.touchAttackHeld = false;
       }
     });
