@@ -6,7 +6,7 @@
   "menu.leaderboard": "🏆 LEADERBOARD",
   "menu.sound_on": "🔊 SOUND",
   "menu.sound_muted": "🔇 MUTED",
-  "menu.controls": "Arrows — Move   |   Space — Attack",
+  "menu.controls": "Arrows / WASD — Move   |   Space / LMB — Attack",
   "menu.leaderboard_unavailable": "Leaderboard unavailable\n(sign in on Yandex to compete)",
 
   "settings.title": "SETTINGS",
@@ -90,6 +90,8 @@
   "inventory.full_restore": "FULL HP!",
   "inventory.tutorial": "Press [1-4] to use, or click the icon",
 
+  "freeze.active": "❄ TIME FROZEN",
+
   "common.loading": "Loading...",
 
   "meta.damage": "Sharper Steel",
@@ -154,8 +156,8 @@
   "shopitem.full_heal.desc": "Restore HP to maximum. Activate with [3].",
   "shopitem.coin_magnet_shop": "Coin Magnet",
   "shopitem.coin_magnet_shop.desc": "Auto-collect coins for the rest of this run",
-  "shopitem.time_slow": "Time Slow",
-  "shopitem.time_slow.desc": "Slow enemies 50% for 8 seconds. Activate with [4].",
+  "shopitem.time_slow": "Time Freeze",
+  "shopitem.time_slow.desc": "Freezes enemies completely for 8 seconds. Activate with [4].",
   "shopitem.bomb": "Bomb",
   "shopitem.bomb.desc": "Kills all enemies on screen. Activate with [1].",
   "shopitem.damage_boost_shop": "Damage Boost",

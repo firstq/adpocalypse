@@ -157,7 +157,7 @@ export abstract class Boss extends Enemy {
       return;
     }
     super.update(); // handles moveTowardPlayer, bodyContainer position, updateHPBar
-    if (this.active) this.bossUpdate();
+    if (this.active && !this.frozen) this.bossUpdate();
   }
 
   // ── Death ───────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, UPGRADE_POOL } from '../config';
+import { GAME_WIDTH, GAME_HEIGHT, UPGRADE_POOL } from '../config';
 import { HPBar } from '../ui/HPBar';
 import { BossHPBar } from '../ui/BossHPBar';
 import { InventoryHUD } from '../ui/InventoryHUD';
@@ -21,6 +21,9 @@ export class UIScene extends Phaser.Scene {
   private paused = false;
   private lastUpgradeCount = -1;
   private bossBar: BossHPBar | null = null;
+  private freezeTimerContainer!: Phaser.GameObjects.Container;
+  private freezeTimerNum!: Phaser.GameObjects.Text;
+  private isMobile = false;
 
   constructor() {
     super({ key: 'UIScene' });
@@ -60,16 +63,20 @@ export class UIScene extends Phaser.Scene {
     // Upgrade icons row
     this.upgradeIcons = this.add.container(10, 96);
 
-    // Inventory HUD (below upgrade icons)
-    const isMobile = !this.sys.game.device.os.desktop;
+    // Inventory HUD — bottom-right on mobile, top-left on desktop
+    this.isMobile = !this.sys.game.device.os.desktop;
+    const invX = this.isMobile ? GAME_WIDTH - 285 : 10;
+    const invY = this.isMobile ? GAME_HEIGHT - 240 : 118;
+    const iconSize = this.isMobile ? 56 : 48;
     this.inventoryHUD = new InventoryHUD(
       this,
-      10,
-      118,
-      isMobile,
+      invX,
+      invY,
+      this.isMobile,
       (type: ConsumableType) => {
         (this.scene.get('GameScene') as GameScene).activateConsumable(type);
       },
+      iconSize,
     );
 
     // Wave info (top center)
@@ -91,6 +98,22 @@ export class UIScene extends Phaser.Scene {
       fontFamily: 'Arial',
       color: '#888888',
     }).setOrigin(0.5, 0);
+
+    // Freeze timer (hidden by default, shown when time freeze is active)
+    this.freezeTimerContainer = this.add.container(GAME_WIDTH / 2, 72).setDepth(55).setVisible(false);
+    this.freezeTimerNum = this.add.text(0, 0, '8', {
+      fontSize: '36px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#67e8f9',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5, 0);
+    const freezeLabel = this.add.text(0, 42, t('freeze.active'), {
+      fontSize: '12px',
+      fontFamily: 'Arial',
+      color: '#67e8f9',
+    }).setOrigin(0.5, 0);
+    this.freezeTimerContainer.add([this.freezeTimerNum, freezeLabel]);
 
     // Best wave (top right, left of mute/pause)
     this.bestText = this.add.text(GAME_WIDTH - 108, 14, t('ui.best_none'), {
@@ -225,11 +248,24 @@ export class UIScene extends Phaser.Scene {
     if (state.inventory) {
       this.inventoryHUD?.update(state.inventory, state.timeSlowActive, state.timeSlowRemaining);
     }
+
+    // Freeze timer display
+    if (state.timeSlowActive) {
+      this.freezeTimerContainer.setVisible(true);
+      const secs = Math.ceil(state.timeSlowRemaining / 1000);
+      this.freezeTimerNum.setText(String(secs)).setColor(secs <= 3 ? '#f97316' : '#67e8f9');
+    } else {
+      this.freezeTimerContainer.setVisible(false);
+    }
   }
 
   showInventoryTutorial(): void {
-    const tipX = 10 + (4 * 48 + 3 * 8) / 2;
-    const tipY = 118 + 56;
+    const iconSize = this.isMobile ? 56 : 48;
+    const gap = this.isMobile ? 12 : 8;
+    const invX = this.isMobile ? GAME_WIDTH - 285 : 10;
+    const invY = this.isMobile ? GAME_HEIGHT - 240 : 118;
+    const tipX = invX + (4 * iconSize + 3 * gap) / 2;
+    const tipY = invY + iconSize + 8;
 
     const bg = this.add.rectangle(tipX, tipY, 260, 28, 0x1e293b, 0.92)
       .setStrokeStyle(1, 0x334155)

@@ -14,7 +14,13 @@ export class InputManager {
     up: Phaser.Input.Keyboard.Key;
     down: Phaser.Input.Keyboard.Key;
     space: Phaser.Input.Keyboard.Key;
+    a: Phaser.Input.Keyboard.Key;
+    d: Phaser.Input.Keyboard.Key;
+    w: Phaser.Input.Keyboard.Key;
+    s: Phaser.Input.Keyboard.Key;
   };
+
+  private mouseAttackHeld = false;
 
   private touchAttackHeld = false;
   private joystickActive = false;
@@ -40,10 +46,21 @@ export class InputManager {
       up:    kbd.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
       down:  kbd.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
       space: kbd.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+      a: kbd.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+      d: kbd.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+      w: kbd.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+      s: kbd.addKey(Phaser.Input.Keyboard.KeyCodes.S),
     };
 
     if (this.isMobile) {
       this.buildTouchControls();
+    } else {
+      scene.input.on('pointerdown', (ptr: Phaser.Input.Pointer) => {
+        if (ptr.leftButtonDown()) this.mouseAttackHeld = true;
+      });
+      scene.input.on('pointerup', (ptr: Phaser.Input.Pointer) => {
+        if (!ptr.leftButtonDown()) this.mouseAttackHeld = false;
+      });
     }
   }
 
@@ -104,11 +121,11 @@ export class InputManager {
   }
 
   update(): void {
-    this.left = this.keys.left.isDown;
-    this.right = this.keys.right.isDown;
-    this.up = this.keys.up.isDown;
-    this.down = this.keys.down.isDown;
-    this.attack = this.keys.space.isDown || this.touchAttackHeld;
+    this.left  = this.keys.left.isDown  || this.keys.a.isDown;
+    this.right = this.keys.right.isDown || this.keys.d.isDown;
+    this.up    = this.keys.up.isDown    || this.keys.w.isDown;
+    this.down  = this.keys.down.isDown  || this.keys.s.isDown;
+    this.attack = this.keys.space.isDown || this.touchAttackHeld || this.mouseAttackHeld;
 
     if (this.isMobile && this.joystickActive) {
       const dx = this.joystickCurrent.x - this.joystickStart.x;

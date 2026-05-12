@@ -21,6 +21,7 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
   readonly knockback: number;
   hitThisSwing: boolean = false;
   public isBossType: boolean = false;
+  public frozen: boolean = false;
   private premiumEnemy = false;
 
   protected gameScene: GameScene;
@@ -110,6 +111,12 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   update(): void {
     if (!this.active || this.dying) return;
+    if (this.frozen) {
+      (this.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+      this.bodyContainer.setPosition(this.x, this.y);
+      this.updateHPBar();
+      return;
+    }
     this.moveTowardPlayer();
     this.bodyContainer.setPosition(this.x, this.y);
     this.updateHPBar();
@@ -142,6 +149,10 @@ export abstract class Enemy extends Phaser.Physics.Arcade.Sprite {
       duration: 60,
       ease: 'Linear',
     });
+  }
+
+  setFreezeVisual(active: boolean): void {
+    this.bodyContainer.setAlpha(active ? 0.65 : 1);
   }
 
   applyHitKnockback(fromX: number, fromY: number, force: number): void {

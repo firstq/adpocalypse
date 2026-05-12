@@ -6,7 +6,7 @@
   "menu.leaderboard": "🏆 ЛИДЕРБОРД",
   "menu.sound_on": "🔊 ЗВУК",
   "menu.sound_muted": "🔇 БЕЗ ЗВУКА",
-  "menu.controls": "Стрелки — движение   |   Пробел — атака",
+  "menu.controls": "Стрелки / WASD — движение   |   Пробел / ЛКМ — атака",
   "menu.leaderboard_unavailable": "Лидерборд недоступен\n(войдите на Яндекс для участия)",
 
   "settings.title": "НАСТРОЙКИ",
@@ -90,6 +90,8 @@
   "inventory.full_restore": "HP ВОССТАНОВЛЕН!",
   "inventory.tutorial": "Нажмите [1-4] для использования или кликните",
 
+  "freeze.active": "❄ ЗАМОРОЗКА",
+
   "common.loading": "Загрузка...",
 
   "meta.damage": "Острый клинок",
@@ -154,8 +156,8 @@
   "shopitem.full_heal.desc": "Восстановить HP до максимума. Клавиша [3].",
   "shopitem.coin_magnet_shop": "Магнит монет",
   "shopitem.coin_magnet_shop.desc": "Монеты сами летят к тебе до конца забега",
-  "shopitem.time_slow": "Замедление времени",
-  "shopitem.time_slow.desc": "Замедление врагов на 8 сек. Клавиша [4].",
+  "shopitem.time_slow": "Заморозка времени",
+  "shopitem.time_slow.desc": "Замораживает врагов на 8 сек. Клавиша [4].",
   "shopitem.bomb": "Бомба",
   "shopitem.bomb.desc": "Убивает всех врагов на экране. Клавиша [1].",
   "shopitem.damage_boost_shop": "Урон+",

@@ -551,15 +551,10 @@ export class GameScene extends Phaser.Scene {
       this.showBonusGears(bonus);
     }
 
-    // Reset time slow
+    // Reset time freeze / death slowmo
     this.physics.world.timeScale = 1;
     if (this.timeSlowActive) {
-      this.timeSlowActive = false;
-      this.timeSlowTimer?.remove();
-      this.timeSlowTimer = null;
-      this.timeSlowRemaining = 0;
-      this.timeSlowOverlay?.destroy();
-      this.timeSlowOverlay = null;
+      this.cancelTimeFreeze();
     }
 
     this.updateUI();
@@ -1040,7 +1035,7 @@ export class GameScene extends Phaser.Scene {
       case 'bomb':         this.doActivateBomb(); break;
       case 'healthPotion': this.doActivateHealthPotion(); break;
       case 'fullHeal':     this.doActivateFullHeal(); break;
-      case 'timeSlow':     this.doActivateTimeSlow(); break;
+      case 'timeSlow':     this.doActivateTimeFreeze(); break;
     }
   }
 
@@ -1152,21 +1147,39 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private doActivateTimeSlow(): void {
+  private doActivateTimeFreeze(): void {
     const DURATION = 8000;
     this.timeSlowActive = true;
     this.timeSlowRemaining = DURATION;
-    this.physics.world.timeScale = 0.5;
 
-    this.timeSlowOverlay?.destroy();
-    this.timeSlowOverlay = this.add.rectangle(
-      GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x1d4ed8, 0.12,
-    ).setDepth(50);
-    this.tweens.add({
-      targets: this.timeSlowOverlay,
-      alpha: 0.12,
-      duration: 300,
+    // Freeze all enemies
+    this.enemies.getChildren().forEach(e => {
+      const enemy = e as Enemy;
+      if (!enemy.active) return;
+      enemy.frozen = true;
+      (enemy.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+      enemy.setFreezeVisual(true);
     });
+
+    // Slow existing enemy projectiles to 30%
+    this.projectiles.getChildren().forEach(p => {
+      const proj = p as Phaser.Physics.Arcade.Sprite;
+      if (!proj.active || !proj.body) return;
+      const body = proj.body as Phaser.Physics.Arcade.Body;
+      body.setVelocity(body.velocity.x * 0.3, body.velocity.y * 0.3);
+    });
+
+    // White flash → cyan tint overlay
+    this.timeSlowOverlay?.destroy();
+    const flash = this.add.rectangle(
+      GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0xffffff, 0.55,
+    ).setDepth(50);
+    this.tweens.add({ targets: flash, alpha: 0, duration: 100, onComplete: () => flash.destroy() });
+
+    this.timeSlowOverlay = this.add.rectangle(
+      GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x67e8f9, 0,
+    ).setDepth(49);
+    this.tweens.add({ targets: this.timeSlowOverlay, alpha: 0.12, duration: 500 });
 
     this.audio.playSFX('sfx_gear_pickup', { detune: -800 });
 
@@ -1181,23 +1194,32 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.time.delayedCall(DURATION, () => {
-      if (!this.timeSlowActive) return; // already cancelled by wave end
-      this.timeSlowActive = false;
-      this.timeSlowRemaining = 0;
-      this.timeSlowTimer = null;
-      this.physics.world.timeScale = 1;
-      if (this.timeSlowOverlay) {
-        this.tweens.add({
-          targets: this.timeSlowOverlay,
-          alpha: 0,
-          duration: 400,
-          onComplete: () => {
-            this.timeSlowOverlay?.destroy();
-            this.timeSlowOverlay = null;
-          },
-        });
-      }
+      if (!this.timeSlowActive) return;
+      this.cancelTimeFreeze();
     });
+  }
+
+  private cancelTimeFreeze(): void {
+    this.timeSlowActive = false;
+    this.timeSlowRemaining = 0;
+    this.timeSlowTimer?.remove();
+    this.timeSlowTimer = null;
+
+    this.enemies.getChildren().forEach(e => {
+      const enemy = e as Enemy;
+      if (!enemy.active) return;
+      enemy.frozen = false;
+      enemy.setFreezeVisual(false);
+    });
+
+    if (this.timeSlowOverlay) {
+      this.tweens.add({
+        targets: this.timeSlowOverlay,
+        alpha: 0,
+        duration: 800,
+        onComplete: () => { this.timeSlowOverlay?.destroy(); this.timeSlowOverlay = null; },
+      });
+    }
   }
 
   private showFloatingText(text: string, x: number, y: number, color: string): void {

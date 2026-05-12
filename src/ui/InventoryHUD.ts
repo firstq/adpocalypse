@@ -11,11 +11,10 @@ const CONFIGS: IconConfig[] = [
   { type: 'bomb',         emoji: '💣', key: '1' },
   { type: 'healthPotion', emoji: '🧪', key: '2' },
   { type: 'fullHeal',     emoji: '💊', key: '3' },
-  { type: 'timeSlow',     emoji: '🕐', key: '4' },
+  { type: 'timeSlow',     emoji: '❄️', key: '4' },
 ];
 
-const SIZE = 48;
-const GAP  = 8;
+const DEFAULT_SIZE = 48;
 
 interface IconEntry {
   bg:         Phaser.GameObjects.Rectangle;
@@ -28,6 +27,8 @@ export class InventoryHUD extends Phaser.GameObjects.Container {
   private icons: IconEntry[] = [];
   private readonly isMobile: boolean;
   private readonly onActivate: (type: ConsumableType) => void;
+  private readonly iconSize: number;
+  private readonly gap: number;
 
   constructor(
     scene: Phaser.Scene,
@@ -35,29 +36,34 @@ export class InventoryHUD extends Phaser.GameObjects.Container {
     y: number,
     isMobile: boolean,
     onActivate: (type: ConsumableType) => void,
+    iconSize: number = DEFAULT_SIZE,
   ) {
     super(scene, x, y);
     this.isMobile = isMobile;
     this.onActivate = onActivate;
+    this.iconSize = iconSize;
+    this.gap = isMobile ? 12 : 8;
     scene.add.existing(this);
     this.setDepth(90);
     this.buildIcons();
   }
 
   private buildIcons(): void {
+    const S = this.iconSize;
+    const G = this.gap;
     CONFIGS.forEach((cfg, i) => {
-      const cx = i * (SIZE + GAP) + SIZE / 2;
-      const cy = SIZE / 2;
+      const cx = i * (S + G) + S / 2;
+      const cy = S / 2;
 
-      const bg = this.scene.add.rectangle(cx, cy, SIZE, SIZE, 0x1e293b)
+      const bg = this.scene.add.rectangle(cx, cy, S, S, 0x1e293b)
         .setStrokeStyle(1, 0x334155);
 
       const icon = this.scene.add.text(cx, cy - 2, cfg.emoji, {
-        fontSize: '24px',
+        fontSize: `${Math.round(S * 0.5)}px`,
         fontFamily: 'Arial',
       }).setOrigin(0.5);
 
-      const badge = this.scene.add.text(cx + SIZE / 2 - 4, cy - SIZE / 2 + 4, '', {
+      const badge = this.scene.add.text(cx + S / 2 - 4, cy - S / 2 + 4, '', {
         fontSize: '13px',
         fontFamily: 'Arial Black, Arial',
         color: '#ffffff',
@@ -65,7 +71,7 @@ export class InventoryHUD extends Phaser.GameObjects.Container {
         padding: { x: 2, y: 1 },
       }).setOrigin(1, 0).setDepth(1);
 
-      const keyLabel = this.scene.add.text(cx, cy + SIZE / 2 - 8, cfg.key, {
+      const keyLabel = this.scene.add.text(cx, cy + S / 2 - 8, cfg.key, {
         fontSize: '11px',
         fontFamily: 'Arial',
         color: '#64748b',
@@ -104,7 +110,7 @@ export class InventoryHUD extends Phaser.GameObjects.Container {
       if (cfg.type === 'timeSlow' && timeSlowActive) {
         const secs = Math.ceil(timeSlowRemaining / 1000);
         badge.setText(`${secs}s`).setVisible(true);
-        bg.setStrokeStyle(2, 0x3b82f6);
+        bg.setStrokeStyle(2, 0x67e8f9);
       } else if (count > 0) {
         badge.setText(`×${count}`).setVisible(true);
         bg.setStrokeStyle(1, 0x334155);
