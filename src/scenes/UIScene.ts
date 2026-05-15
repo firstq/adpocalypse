@@ -9,8 +9,8 @@ import { t } from '../i18n';
 
 export class UIScene extends Phaser.Scene {
   private hpBar!: HPBar;
-  private coinText!: Phaser.GameObjects.Text;
-  private gearText!: Phaser.GameObjects.Text;
+  private coinValueText!: Phaser.GameObjects.Text;
+  private gearValueText!: Phaser.GameObjects.Text;
   private waveText!: Phaser.GameObjects.Text;
   private bestText!: Phaser.GameObjects.Text;
   private enemyBar!: Phaser.GameObjects.Rectangle;
@@ -43,22 +43,24 @@ export class UIScene extends Phaser.Scene {
     });
 
     // Coin counter
-    this.coinText = this.add.text(10, 50, '🪙 0', {
+    this.add.image(10, 60, 'icon-coin').setDisplaySize(20, 20).setOrigin(0, 0.5);
+    this.coinValueText = this.add.text(33, 60, '0', {
       fontSize: '20px',
       fontFamily: 'Arial',
       color: '#ffd700',
       stroke: '#000000',
       strokeThickness: 3,
-    });
+    }).setOrigin(0, 0.5);
 
     // Gear counter (run total)
-    this.gearText = this.add.text(10, 74, '⚙ 0', {
+    this.add.image(10, 83, 'icon-gear').setDisplaySize(16, 16).setOrigin(0, 0.5);
+    this.gearValueText = this.add.text(28, 83, '0', {
       fontSize: '16px',
       fontFamily: 'Arial',
       color: '#aaaacc',
       stroke: '#000000',
       strokeThickness: 2,
-    });
+    }).setOrigin(0, 0.5);
 
     // Upgrade icons row
     this.upgradeIcons = this.add.container(10, 96);
@@ -124,20 +126,22 @@ export class UIScene extends Phaser.Scene {
 
     // Mute button
     const getAudio = () => (this.scene.get('GameScene') as GameScene).audio;
-    const muteBtn = this.add.text(GAME_WIDTH - 56, 14, '🔊', {
-      fontSize: '24px',
-      fontFamily: 'Arial',
+    const muteBtn = this.add.text(GAME_WIDTH - 56, 14, 'SFX', {
+      fontSize: '16px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#4ecdc4',
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
     muteBtn.on('pointerdown', () => {
       const audio = getAudio();
       audio.setMuted(!audio.isMuted());
-      muteBtn.setText(audio.isMuted() ? '🔇' : '🔊');
+      muteBtn.setColor(audio.isMuted() ? '#555555' : '#4ecdc4');
     });
 
     // Pause button
-    const pauseBtn = this.add.text(GAME_WIDTH - 20, 14, '⏸', {
-      fontSize: '28px',
-      fontFamily: 'Arial',
+    const pauseBtn = this.add.text(GAME_WIDTH - 20, 14, '||', {
+      fontSize: '22px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#ecf0f1',
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
 
     pauseBtn.on('pointerdown', () => this.togglePause());
@@ -212,8 +216,8 @@ export class UIScene extends Phaser.Scene {
   updateState(state: GameState): void {
     if (!this.hpBar) return;
     this.hpBar?.setValue(state.hp, state.maxHp);
-    this.coinText?.setText(`🪙 ${state.coins}`);
-    this.gearText?.setText(`⚙ ${state.gearsThisRun}`);
+    this.coinValueText?.setText(String(state.coins));
+    this.gearValueText?.setText(String(state.gearsThisRun));
 
     const isBoss = state.wave > 1 && (state.wave - 1) % 5 === 0;
     const waveColor = isBoss ? '#ff6600' : '#ecf0f1';
@@ -229,7 +233,7 @@ export class UIScene extends Phaser.Scene {
     if (this.enemyBar) {
       this.enemyBar.setSize(300 * pct, 8);
     }
-    this.enemyBarLabel?.setText(`☠ ${killed} / ${total}`);
+    this.enemyBarLabel?.setText(`${killed} / ${total}`);
 
     // Upgrade icons — rebuild only when count changes
     const upgrades = state.activeUpgrades ?? [];
@@ -239,8 +243,8 @@ export class UIScene extends Phaser.Scene {
       upgrades.slice(0, 20).forEach((id, i) => {
         const def = UPGRADE_POOL.find(u => u.id === id);
         if (!def) return;
-        const txt = this.add.text(i * 26, 0, def.icon, { fontSize: '18px' });
-        this.upgradeIcons.add(txt);
+        const img = this.add.image(i * 22 + 11, 11, def.iconKey).setDisplaySize(20, 20);
+        this.upgradeIcons.add(img);
       });
     }
 

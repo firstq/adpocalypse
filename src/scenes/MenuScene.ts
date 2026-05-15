@@ -70,10 +70,9 @@ export class MenuScene extends Phaser.Scene {
       muteBtn.setLabel(this.muteLabel());
     }, 0x555555);
 
-    const settingsBtn = this.add.text(GAME_WIDTH - 20, 14, '⚙', {
-      fontSize: '28px',
-      fontFamily: 'Arial',
-    }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+    const settingsBtn = this.add.image(GAME_WIDTH - 20, 28, 'icon-gear')
+      .setDisplaySize(28, 28).setOrigin(1, 0.5)
+      .setInteractive({ useHandCursor: true }).setDepth(5);
 
     settingsBtn.on('pointerover', () => settingsBtn.setAlpha(0.7));
     settingsBtn.on('pointerout',  () => settingsBtn.setAlpha(1));
@@ -308,7 +307,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private spawnBgDecorations(): void {
-    const labels = ['✕ CLOSE', 'ACCEPT COOKIES', 'YOU WON!', '★ SUBSCRIBE', '⚡ PREMIUM'];
+    const labels = ['✕ CLOSE', 'ACCEPT COOKIES', 'YOU WON!', '★ SUBSCRIBE', '* PREMIUM'];
     const colors = [0xe74c3c, 0xf39c12, 0xf1c40f, 0x9b59b6, 0x3498db];
 
     for (let i = 0; i < 6; i++) {

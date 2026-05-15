@@ -7,6 +7,7 @@ const ICONS: string[] = [
   'eagle-eye', 'full-heal', 'gear-up', 'greedy', 'healthy-start',
   'lifesteal', 'lucky', 'magnet', 'quick-hands', 'quick-snack',
   'second-wind', 'sharper-steel', 'speed-boost', 'swift-boots', 'tougher-skin',
+  'coin', 'gear', 'trophy', 'heart', 'time-slow',
 ];
 
 const SFX: Array<[string, string]> = [

@@ -45,12 +45,11 @@ export class AlgorithmBoss extends Boss {
     const glow = this.scene.add.circle(0, 0, 72, 0x2222cc, 0.12);
     const inner = this.scene.add.circle(0, 0, 32, 0x6622aa);
     const pupil = this.scene.add.circle(0, 0, 14, 0x111111);
-    const eyeIcon = this.scene.add.text(0, -2, '👁', { fontSize: '20px' }).setOrigin(0.5);
     const nameTxt = this.scene.add.text(0, 50, 'ALGORITHM', {
       fontSize: '13px', fontFamily: 'Arial Black, Arial', color: '#6699ff',
     }).setOrigin(0.5);
 
-    this.bodyContainer.add([glow, outer, inner, pupil, eyeIcon, nameTxt]);
+    this.bodyContainer.add([glow, outer, inner, pupil, nameTxt]);
 
     // Pulsing glow
     this.scene.tweens.add({

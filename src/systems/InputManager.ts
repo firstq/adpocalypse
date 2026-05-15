@@ -76,8 +76,10 @@ export class InputManager {
     const ax = GAME_WIDTH - 120;
     const ay = GAME_HEIGHT - 100;
     const attackCircle = this.scene.add.circle(0, 0, 55, 0xe74c3c, 0.4);
-    const attackText = this.scene.add.text(0, 0, '⚔', {
-      fontSize: '36px',
+    const attackText = this.scene.add.text(0, 0, 'ATK', {
+      fontSize: '22px',
+      fontFamily: 'Arial Black, Arial',
+      color: '#ffffff',
     }).setOrigin(0.5);
     this.scene.add.container(ax, ay, [attackCircle, attackText])
       .setDepth(100).setScrollFactor(0);

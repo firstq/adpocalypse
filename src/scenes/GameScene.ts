@@ -1090,7 +1090,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    const boomText = this.add.text(this.player.x, this.player.y - 50, '💣 BOOM!', {
+    const boomText = this.add.text(this.player.x, this.player.y - 50, 'BOOM!', {
       fontSize: '52px',
       fontFamily: 'Arial Black, Arial',
       color: '#ff6600',

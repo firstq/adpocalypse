@@ -19,13 +19,8 @@ export class Gear extends Phaser.Physics.Arcade.Sprite {
 
     const outer = scene.add.circle(0, 0, 9, 0x999999);
     const inner = scene.add.circle(0, 0, 5, 0x555566);
-    const icon = scene.add.text(0, 0, '⚙', {
-      fontSize: '9px',
-      fontFamily: 'Arial',
-      color: '#ccccdd',
-    }).setOrigin(0.5);
 
-    this.graphic = scene.add.container(x, y, [outer, inner, icon]);
+    this.graphic = scene.add.container(x, y, [outer, inner]);
     this.graphic.setDepth(3);
     this.graphic.setScale(0);
 

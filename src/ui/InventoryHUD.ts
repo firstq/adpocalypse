@@ -3,22 +3,22 @@ import { ConsumableType, PlayerInventory } from '../systems/InventoryManager';
 
 interface IconConfig {
   type: ConsumableType;
-  emoji: string;
+  iconKey: string;
   key: string;
 }
 
 const CONFIGS: IconConfig[] = [
-  { type: 'bomb',         emoji: '💣', key: '1' },
-  { type: 'healthPotion', emoji: '🧪', key: '2' },
-  { type: 'fullHeal',     emoji: '💊', key: '3' },
-  { type: 'timeSlow',     emoji: '❄️', key: '4' },
+  { type: 'bomb',         iconKey: 'icon-bomb',      key: '1' },
+  { type: 'healthPotion', iconKey: 'icon-full-heal',  key: '2' },
+  { type: 'fullHeal',     iconKey: 'icon-heart',      key: '3' },
+  { type: 'timeSlow',     iconKey: 'icon-time-slow',  key: '4' },
 ];
 
 const DEFAULT_SIZE = 48;
 
 interface IconEntry {
   bg:         Phaser.GameObjects.Rectangle;
-  icon:       Phaser.GameObjects.Text;
+  icon:       Phaser.GameObjects.Image;
   badge:      Phaser.GameObjects.Text;
   keyLabel:   Phaser.GameObjects.Text;
 }
@@ -58,10 +58,9 @@ export class InventoryHUD extends Phaser.GameObjects.Container {
       const bg = this.scene.add.rectangle(cx, cy, S, S, 0x1e293b)
         .setStrokeStyle(1, 0x334155);
 
-      const icon = this.scene.add.text(cx, cy - 2, cfg.emoji, {
-        fontSize: `${Math.round(S * 0.5)}px`,
-        fontFamily: 'Arial',
-      }).setOrigin(0.5);
+      const icon = this.scene.add.image(cx, cy, cfg.iconKey)
+        .setDisplaySize(Math.round(S * 0.6), Math.round(S * 0.6))
+        .setOrigin(0.5);
 
       const badge = this.scene.add.text(cx + S / 2 - 4, cy - S / 2 + 4, '', {
         fontSize: '13px',

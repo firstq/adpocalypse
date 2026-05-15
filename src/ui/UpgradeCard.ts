@@ -238,10 +238,13 @@ export class UpgradeCard extends Phaser.GameObjects.Container {
     const affordable = config.affordable ?? true;
     const maxed = config.level !== undefined && config.level.current >= config.level.max;
 
-    const currencyIcon = config.cost!.currency === 'coins' ? '🪙' : '⚙';
     const amountColor = !affordable ? '#ef4444' : '#ffffff';
+    const currencyIconKey = config.cost!.currency === 'coins' ? 'icon-coin' : 'icon-gear';
+    const currencyImg = this.scene.add.image(-hw + PAD + 8, centerY, currencyIconKey)
+      .setDisplaySize(16, 16).setOrigin(0.5, 0.5);
+    this.add(currencyImg);
 
-    const amountText = this.scene.add.text(-hw + PAD, centerY, `${currencyIcon} ${config.cost!.amount}`, {
+    const amountText = this.scene.add.text(-hw + PAD + 20, centerY, `${config.cost!.amount}`, {
       fontSize: '17px',
       fontFamily: 'Arial Black, Arial',
       color: amountColor,
