@@ -106,6 +106,12 @@
   "boss.scroll.death": "FEED CLOSED\nYou have been online for 8 hours.",
   "boss.scroll.band_warning": "▼ SCROLL WAVE ▼",
 
+  "credits.title": "Credits",
+  "credits.icons": "Icons",
+  "credits.audio": "Audio",
+  "credits.gameIcon": "Game icon",
+  "credits.development": "Development",
+
   "common.loading": "Loading...",
 
   "meta.damage": "Sharper Steel",

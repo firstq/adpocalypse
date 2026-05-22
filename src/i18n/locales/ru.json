@@ -106,6 +106,12 @@
   "boss.scroll.death": "ЛЕНТА ЗАКРЫТА\nВы провели в сети 8 часов.",
   "boss.scroll.band_warning": "▼ ВОЛНА ПРОКРУТКИ ▼",
 
+  "credits.title": "Авторы",
+  "credits.icons": "Иконки",
+  "credits.audio": "Звуки",
+  "credits.gameIcon": "Иконка игры",
+  "credits.development": "Разработка",
+
   "common.loading": "Загрузка...",
 
   "meta.damage": "Острый клинок",

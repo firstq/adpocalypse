@@ -70,6 +70,10 @@ export class MenuScene extends Phaser.Scene {
       muteBtn.setLabel(this.muteLabel());
     }, 0x555555);
 
+    new Button(this, GAME_WIDTH / 2, 660, 200, 46, t('credits.title'), () => {
+      this.scene.start('CreditsScene');
+    }, 0x1a2a4a);
+
     const settingsBtn = this.add.image(GAME_WIDTH - 20, 28, 'icon-gear')
       .setDisplaySize(28, 28).setOrigin(1, 0.5)
       .setInteractive({ useHandCursor: true }).setDepth(5);
@@ -78,7 +82,7 @@ export class MenuScene extends Phaser.Scene {
     settingsBtn.on('pointerout',  () => settingsBtn.setAlpha(1));
     settingsBtn.on('pointerdown', () => this.openSettings());
 
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 40, t('menu.controls'), {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 16, t('menu.controls'), {
       fontSize: '18px',
       fontFamily: 'Arial',
       color: '#7f8c8d',
