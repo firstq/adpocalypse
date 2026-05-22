@@ -8,6 +8,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.input.mouse?.disableContextMenu();
     // Kick off async SDK init; transition to PreloadScene when done (or on error)
     this.initAsync().catch((err: unknown) => {
       console.error('[BootScene] SDK init error:', err);

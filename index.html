@@ -10,6 +10,16 @@
         padding: 0;
         box-sizing: border-box;
       }
+      html, body {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+        overscroll-behavior: none;
+        touch-action: manipulation;
+      }
       body {
         background: #1a1a2e;
         display: flex;
@@ -21,6 +31,10 @@
       }
       canvas {
         display: block;
+        outline: none;
+        -webkit-user-select: none;
+        user-select: none;
+        touch-action: none;
       }
     </style>
   </head>

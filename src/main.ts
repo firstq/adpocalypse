@@ -9,6 +9,11 @@ import { UpgradeScene } from './scenes/UpgradeScene';
 import { WorkshopScene } from './scenes/WorkshopScene';
 import { ShopScene } from './scenes/ShopScene';
 
+// Prevent browser context menu, drag-select, and text selection inside the game
+(['contextmenu', 'dragstart', 'selectstart'] as const).forEach(evt => {
+  window.addEventListener(evt, (e) => e.preventDefault(), { capture: true });
+});
+
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: GAME_WIDTH,
