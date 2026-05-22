@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH } from '../config';
+import { t } from '../i18n';
 import { GameScene } from '../scenes/GameScene';
 import { EnemyMultipliers } from '../entities/enemies/Enemy';
 import { PopupClose } from '../entities/enemies/PopupClose';
@@ -169,11 +170,11 @@ export class WaveManager {
     if (isBoss) {
       this.scene.audio.playSFX('sfx_boss_appear');
       const bossType = ((Math.floor(waveNumber / 5)) - 1) % 3;
-      const bossNames = [AlgorithmBoss.NAME, SpamBoss.NAME, ScrollBoss.NAME];
+      const bossNames = [t('boss.algorithm.name'), t('boss.spam.name'), t('boss.scroll.name')];
       const bossName = bossNames[bossType];
 
       const items: Phaser.GameObjects.Text[] = [];
-      const waveLabel = this.scene.add.text(GAME_WIDTH / 2, 170, `⚠ BOSS WAVE ${waveNumber} ⚠`, {
+      const waveLabel = this.scene.add.text(GAME_WIDTH / 2, 170, t('wave.boss_announcement', { wave: waveNumber }), {
         fontSize: '54px', fontFamily: 'Arial Black, Arial', color: '#ff4500',
         stroke: '#000000', strokeThickness: 6,
       }).setOrigin(0.5).setDepth(50).setAlpha(0);
@@ -199,7 +200,7 @@ export class WaveManager {
       return;
     }
 
-    const text = this.scene.add.text(GAME_WIDTH / 2, 200, `WAVE ${waveNumber}`, {
+    const text = this.scene.add.text(GAME_WIDTH / 2, 200, t('wave.announcement', { wave: waveNumber }), {
       fontSize: '72px', fontFamily: 'Arial Black, Arial', color: '#f1c40f',
       stroke: '#000000', strokeThickness: 6,
     }).setOrigin(0.5).setDepth(50).setAlpha(0);

@@ -18,6 +18,8 @@
   "settings.lang_ru": "РУССКИЙ",
   "settings.lang_en": "ENGLISH",
 
+  "wave.announcement": "WAVE {wave}",
+  "wave.boss_announcement": "! BOSS WAVE {wave} !",
   "wave.cleared": "WAVE {wave} CLEARED!",
   "wave.boss_cleared": "★ BOSS DEFEATED! ★",
   "wave.choose_upgrade": "Choose an upgrade",
@@ -71,6 +73,7 @@
 
   "game.revived": "REVIVED! ({charges} left)",
   "game.crit": "CRIT!",
+  "game.boom": "BOOM!",
   "game.bonus_gears": "+{count} bonus gears!",
 
   "ad.continue": "WATCH AD TO CONTINUE",
@@ -91,6 +94,17 @@
   "inventory.tutorial": "Press [1-4] to use, or click the icon",
 
   "freeze.active": "TIME FROZEN",
+
+  "boss.intro_sub": "WAVE {wave} BOSS",
+  "boss.phase_flash": "— PHASE {phase} —",
+  "boss.algorithm.name": "ALGORITHM LORD",
+  "boss.algorithm.label": "ALGORITHM",
+  "boss.algorithm.death": "ALGORITHM DEFEATED\nYour privacy is restored... for now.",
+  "boss.spam.name": "EMAIL SPAMMER",
+  "boss.spam.death": "INBOX CLEAN\n1,847 unread messages destroyed.",
+  "boss.scroll.name": "ETERNAL SCROLL",
+  "boss.scroll.death": "FEED CLOSED\nYou have been online for 8 hours.",
+  "boss.scroll.band_warning": "▼ SCROLL WAVE ▼",
 
   "common.loading": "Loading...",
 

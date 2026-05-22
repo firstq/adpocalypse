@@ -4,6 +4,7 @@ import { Boss } from './Boss';
 import { Projectile } from '../Projectile';
 import { PopupClose } from '../enemies/PopupClose';
 import { GAME_WIDTH } from '../../config';
+import { t } from '../../i18n';
 
 interface ShieldOrb {
   graphic: Phaser.GameObjects.Arc;
@@ -32,11 +33,9 @@ export class AlgorithmBoss extends Boss {
     this.shootTimer = scene.time.now + 3000; // grace period after intro
   }
 
-  getBossName(): string { return AlgorithmBoss.NAME; }
+  getBossName(): string { return t('boss.algorithm.name'); }
   getPhaseThresholds(): number[] { return [0.66, 0.33]; }
-  protected getDeathLines(): string {
-    return 'ALGORITHM DEFEATED\nYour privacy is restored... for now.';
-  }
+  protected getDeathLines(): string { return t('boss.algorithm.death'); }
   protected getGearDrop(): number { return 8; }
 
   protected buildBody(): void {
@@ -45,7 +44,7 @@ export class AlgorithmBoss extends Boss {
     const glow = this.scene.add.circle(0, 0, 72, 0x2222cc, 0.12);
     const inner = this.scene.add.circle(0, 0, 32, 0x6622aa);
     const pupil = this.scene.add.circle(0, 0, 14, 0x111111);
-    const nameTxt = this.scene.add.text(0, 50, 'ALGORITHM', {
+    const nameTxt = this.scene.add.text(0, 50, t('boss.algorithm.label'), {
       fontSize: '13px', fontFamily: 'Arial Black, Arial', color: '#6699ff',
     }).setOrigin(0.5);
 

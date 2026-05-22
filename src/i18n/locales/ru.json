@@ -18,6 +18,8 @@
   "settings.lang_ru": "РУССКИЙ",
   "settings.lang_en": "ENGLISH",
 
+  "wave.announcement": "ВОЛНА {wave}",
+  "wave.boss_announcement": "! ВОЛНА БОССА {wave} !",
   "wave.cleared": "ВОЛНА {wave} ПРОЙДЕНА!",
   "wave.boss_cleared": "★ БОСС ПОВЕРЖЕН! ★",
   "wave.choose_upgrade": "Выберите усиление",
@@ -71,6 +73,7 @@
 
   "game.revived": "ВОЗРОЖДЕНИЕ! (осталось: {charges})",
   "game.crit": "КРИТ!",
+  "game.boom": "БУМ!",
   "game.bonus_gears": "+{count} бонусных шестерёнок!",
 
   "ad.continue": "СМОТРЕТЬ РЕКЛАМУ ЧТОБЫ ПРОДОЛЖИТЬ",
@@ -91,6 +94,17 @@
   "inventory.tutorial": "Нажмите [1-4] для использования или кликните",
 
   "freeze.active": "ЗАМОРОЗКА",
+
+  "boss.intro_sub": "БОСС ВОЛНЫ {wave}",
+  "boss.phase_flash": "— ФАЗА {phase} —",
+  "boss.algorithm.name": "ВЛАДЫКА АЛГОРИТМОВ",
+  "boss.algorithm.label": "АЛГОРИТМ",
+  "boss.algorithm.death": "АЛГОРИТМ ПОВЕРЖЕН\nВаша приватность восстановлена... пока что.",
+  "boss.spam.name": "СПАМ-БОМБАРДИРОВЩИК",
+  "boss.spam.death": "ВХОДЯЩИЕ ЧИСТЫ\n1 847 непрочитанных сообщений уничтожено.",
+  "boss.scroll.name": "ВЕЧНАЯ ЛЕНТА",
+  "boss.scroll.death": "ЛЕНТА ЗАКРЫТА\nВы провели в сети 8 часов.",
+  "boss.scroll.band_warning": "▼ ВОЛНА ПРОКРУТКИ ▼",
 
   "common.loading": "Загрузка...",
 

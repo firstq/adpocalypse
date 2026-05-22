@@ -4,6 +4,7 @@ import { Boss } from './Boss';
 import { Projectile } from '../Projectile';
 import { SpamEmail } from '../enemies/SpamEmail';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../config';
+import { t } from '../../i18n';
 
 interface ScrollBand {
   warning: Phaser.GameObjects.Rectangle | null;
@@ -32,11 +33,9 @@ export class ScrollBoss extends Boss {
     this.shootTimer = scene.time.now + 3000;
   }
 
-  getBossName(): string { return ScrollBoss.NAME; }
+  getBossName(): string { return t('boss.scroll.name'); }
   getPhaseThresholds(): number[] { return [0.70, 0.35]; }
-  protected getDeathLines(): string {
-    return 'FEED CLOSED\nYou have been online for 8 hours.';
-  }
+  protected getDeathLines(): string { return t('boss.scroll.death'); }
   protected getGearDrop(): number { return 12; }
 
   protected buildBody(): void {
@@ -183,13 +182,13 @@ export class ScrollBoss extends Boss {
       .setDepth(25);
     this.activeBand.warning = warnBand;
 
-    const warnTxt = this.scene.add.text(GAME_WIDTH / 2, warnY, '▼ SCROLL WAVE ▼', {
+    const warnTxt = this.scene.add.text(GAME_WIDTH / 2, warnY, t('boss.scroll.band_warning'), {
       fontSize: '18px', fontFamily: 'Arial Black, Arial',
       color: '#ff4400', stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(26);
 
     this.scene.time.delayedCall(1000, () => {
-      warnBand.destroy();
+      warnBand?.destroy();
       warnTxt.destroy();
       if (!this.active) return;
 

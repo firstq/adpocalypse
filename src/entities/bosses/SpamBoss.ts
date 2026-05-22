@@ -4,6 +4,7 @@ import { Boss } from './Boss';
 import { Projectile } from '../Projectile';
 import { SpamEmail } from '../enemies/SpamEmail';
 import { GAME_WIDTH } from '../../config';
+import { t } from '../../i18n';
 
 export class SpamBoss extends Boss {
   static readonly NAME = 'EMAIL SPAMMER';
@@ -28,11 +29,9 @@ export class SpamBoss extends Boss {
     this.tentacleTimer = scene.time.now + 4500;
   }
 
-  getBossName(): string { return SpamBoss.NAME; }
+  getBossName(): string { return t('boss.spam.name'); }
   getPhaseThresholds(): number[] { return [0.50]; }
-  protected getDeathLines(): string {
-    return 'INBOX CLEAN\n1,847 unread messages destroyed.';
-  }
+  protected getDeathLines(): string { return t('boss.spam.death'); }
   protected getGearDrop(): number { return 10; }
 
   protected buildBody(): void {

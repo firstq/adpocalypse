@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameScene } from '../../scenes/GameScene';
 import { Enemy } from '../enemies/Enemy';
 import { GAME_WIDTH, GAME_HEIGHT } from '../../config';
+import { t } from '../../i18n';
 
 // Forward reference to avoid circular import — UIScene type is only used via get()
 interface UISceneLike {
@@ -132,7 +133,7 @@ export abstract class Boss extends Enemy {
       onComplete: () => flash.destroy(),
     });
 
-    const txt = this.scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, `— PHASE ${phase} —`, {
+    const txt = this.scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2, t('boss.phase_flash', { phase }), {
       fontSize: '52px',
       fontFamily: 'Arial Black, Arial',
       color: '#ff6600',
@@ -223,7 +224,7 @@ export abstract class Boss extends Enemy {
       color: '#ff6600', stroke: '#000000', strokeThickness: 6,
     }).setOrigin(0.5).setDepth(depth).setAlpha(0);
 
-    const subLbl = this.scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 22, `WAVE ${this.waveNumber} BOSS`, {
+    const subLbl = this.scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 22, t('boss.intro_sub', { wave: this.waveNumber }), {
       fontSize: '26px', fontFamily: 'Arial', color: '#ffcc44',
       stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(depth).setAlpha(0);
