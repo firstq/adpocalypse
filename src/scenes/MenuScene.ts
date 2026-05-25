@@ -51,12 +51,16 @@ export class MenuScene extends Phaser.Scene {
     });
 
     const gears = MetaProgress.getGears();
-    new Button(this, GAME_WIDTH / 2, 468, 220, 54, t('menu.workshop', { gears }), () => {
+    new Button(this, GAME_WIDTH / 2, 460, 220, 54, t('menu.workshop', { gears }), () => {
       MetaProgress.markWorkshopVisited();
       this.scene.start('WorkshopScene');
     }, 0x334466);
 
-    const muteBtn = new Button(this, GAME_WIDTH / 2, 540, 200, 50, this.muteLabel(), () => {
+    new Button(this, GAME_WIDTH / 2, 530, 220, 50, t('leaderboard.title'), () => {
+      this.scene.start('LeaderboardScene');
+    }, 0x1a3a6a);
+
+    const muteBtn = new Button(this, GAME_WIDTH / 2, 600, 200, 50, this.muteLabel(), () => {
       this.audio.setMuted(!this.audio.isMuted());
       muteBtn.setLabel(this.muteLabel());
     }, 0x555555);

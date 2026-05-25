@@ -7,6 +7,15 @@
   "menu.sound_muted": "БЕЗ ЗВУКА",
   "menu.controls": "Стрелки / WASD — движение   |   Пробел / ЛКМ — атака",
 
+  "leaderboard.title": "ЛИДЕРБОРД",
+  "leaderboard.loading": "Загрузка...",
+  "leaderboard.notAvailable": "Лидерборд недоступен\n(войдите в аккаунт)",
+  "leaderboard.empty": "Пока пусто.\nСтань первым!",
+  "leaderboard.signIn": "ВОЙТИ",
+  "leaderboard.rank": "#",
+  "leaderboard.player": "Игрок",
+  "leaderboard.wave": "Волна",
+
   "settings.title": "НАСТРОЙКИ",
   "settings.sfx_volume": "Громкость звуков",
   "settings.sound_on": "Звук: ВКЛ  — нажмите чтобы выключить",

@@ -7,6 +7,15 @@
   "menu.sound_muted": "MUTED",
   "menu.controls": "Arrows / WASD — Move   |   Space / LMB — Attack",
 
+  "leaderboard.title": "LEADERBOARD",
+  "leaderboard.loading": "Loading...",
+  "leaderboard.notAvailable": "Leaderboard unavailable\n(sign in to participate)",
+  "leaderboard.empty": "No entries yet.\nBe the first!",
+  "leaderboard.signIn": "SIGN IN",
+  "leaderboard.rank": "#",
+  "leaderboard.player": "Player",
+  "leaderboard.wave": "Wave",
+
   "settings.title": "SETTINGS",
   "settings.sfx_volume": "SFX Volume",
   "settings.sound_on": "Sound: ON  — click to mute",

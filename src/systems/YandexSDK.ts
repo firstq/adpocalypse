@@ -150,7 +150,7 @@ export class YandexSDKReal implements IYandexSDK {
       return result.entries.map(e => ({
         rank:  e.rank,
         score: e.score,
-        name:  e.player.publicName || 'Anonymous',
+        name:  e.player.publicName || '',
       }));
     } catch (err) {
       console.warn('[YandexSDKReal] getLeaderboardEntries failed:', err);
