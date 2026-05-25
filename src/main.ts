@@ -8,7 +8,6 @@ import { UIScene } from './scenes/UIScene';
 import { UpgradeScene } from './scenes/UpgradeScene';
 import { WorkshopScene } from './scenes/WorkshopScene';
 import { ShopScene } from './scenes/ShopScene';
-import { CreditsScene } from './scenes/CreditsScene';
 
 // Prevent browser context menu, drag-select, and text selection inside the game
 (['contextmenu', 'dragstart', 'selectstart'] as const).forEach(evt => {
@@ -34,7 +33,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, PreloadScene, MenuScene, GameScene, UIScene, UpgradeScene, WorkshopScene, ShopScene, CreditsScene],
+  scene: [BootScene, PreloadScene, MenuScene, GameScene, UIScene, UpgradeScene, WorkshopScene, ShopScene],
 };
 
 new Phaser.Game(config);

@@ -3,11 +3,9 @@
   "menu.best_wave": "Best: Wave {wave}",
   "menu.play": "PLAY",
   "menu.workshop": "WORKSHOP ({gears})",
-  "menu.leaderboard": "LEADERBOARD",
   "menu.sound_on": "SOUND",
   "menu.sound_muted": "MUTED",
   "menu.controls": "Arrows / WASD — Move   |   Space / LMB — Attack",
-  "menu.leaderboard_unavailable": "Leaderboard unavailable\n(sign in on Yandex to compete)",
 
   "settings.title": "SETTINGS",
   "settings.sfx_volume": "SFX Volume",
@@ -105,12 +103,6 @@
   "boss.scroll.name": "ETERNAL SCROLL",
   "boss.scroll.death": "FEED CLOSED\nYou have been online for 8 hours.",
   "boss.scroll.band_warning": "▼ SCROLL WAVE ▼",
-
-  "credits.title": "Credits",
-  "credits.icons": "Icons",
-  "credits.audio": "Audio",
-  "credits.gameIcon": "Game icon",
-  "credits.development": "Development",
 
   "common.loading": "Loading...",
 

@@ -109,6 +109,15 @@ public/
 
 After wave 3: Level Complete screen → restart.
 
+## Credits
+
+- **Icons**: [game-icons.net](https://game-icons.net) — CC BY 3.0
+  Authors: Lorc, Delapouite, sbed, zeromancer
+  License: https://creativecommons.org/licenses/by/3.0/
+- **Sound effects**: [Kenney.nl](https://kenney.nl) — CC0
+- **Game icon**: AI-generated
+- **Code**: Sergei Tiurikov. Built with Phaser 3 + TypeScript.
+
 ## TODO (Post-MVP)
 
 - [ ] Real audio: background music + SFX (Kenney Impact Sounds / Music Jingles packs)

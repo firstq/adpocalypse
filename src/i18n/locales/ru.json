@@ -3,11 +3,9 @@
   "menu.best_wave": "Рекорд: Волна {wave}",
   "menu.play": "ИГРАТЬ",
   "menu.workshop": "МАСТЕРСКАЯ ({gears})",
-  "menu.leaderboard": "ЛИДЕРБОРД",
   "menu.sound_on": "ЗВУК",
   "menu.sound_muted": "БЕЗ ЗВУКА",
   "menu.controls": "Стрелки / WASD — движение   |   Пробел / ЛКМ — атака",
-  "menu.leaderboard_unavailable": "Лидерборд недоступен\n(войдите на Яндекс для участия)",
 
   "settings.title": "НАСТРОЙКИ",
   "settings.sfx_volume": "Громкость звуков",
@@ -105,12 +103,6 @@
   "boss.scroll.name": "ВЕЧНАЯ ЛЕНТА",
   "boss.scroll.death": "ЛЕНТА ЗАКРЫТА\nВы провели в сети 8 часов.",
   "boss.scroll.band_warning": "▼ ВОЛНА ПРОКРУТКИ ▼",
-
-  "credits.title": "Авторы",
-  "credits.icons": "Иконки",
-  "credits.audio": "Звуки",
-  "credits.gameIcon": "Иконка игры",
-  "credits.development": "Разработка",
 
   "common.loading": "Загрузка...",
 

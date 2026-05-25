@@ -4,7 +4,6 @@ import { Button } from '../ui/Button';
 import { AudioManager } from '../systems/AudioManager';
 import { MetaProgress } from '../systems/MetaProgress';
 import { adManager, sdkInstance } from '../systems/sdk';
-import { LeaderboardEntry } from '../systems/YandexSDK';
 import { t, setLanguage, getLanguage, Language } from '../i18n';
 
 export class MenuScene extends Phaser.Scene {
@@ -57,22 +56,10 @@ export class MenuScene extends Phaser.Scene {
       this.scene.start('WorkshopScene');
     }, 0x334466);
 
-    const lbBtn = new Button(this, GAME_WIDTH / 2, 540, 220, 50, t('menu.leaderboard'), () => {
-      lbBtn.setLabel(t('common.loading'));
-      void sdkInstance.getLeaderboardEntries('best_wave', 10).then(entries => {
-        lbBtn.setLabel(t('menu.leaderboard'));
-        this.showLeaderboardModal(entries);
-      });
-    }, 0x1a3a6a);
-
-    const muteBtn = new Button(this, GAME_WIDTH / 2, 602, 200, 50, this.muteLabel(), () => {
+    const muteBtn = new Button(this, GAME_WIDTH / 2, 540, 200, 50, this.muteLabel(), () => {
       this.audio.setMuted(!this.audio.isMuted());
       muteBtn.setLabel(this.muteLabel());
     }, 0x555555);
-
-    new Button(this, GAME_WIDTH / 2, 660, 200, 46, t('credits.title'), () => {
-      this.scene.start('CreditsScene');
-    }, 0x1a2a4a);
 
     const settingsBtn = this.add.image(GAME_WIDTH - 20, 28, 'icon-gear')
       .setDisplaySize(28, 28).setOrigin(1, 0.5)
@@ -223,55 +210,6 @@ export class MenuScene extends Phaser.Scene {
     const closeBtn = this.add.text(cx, cy + 175, t('settings.close'), {
       fontSize: '24px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
       stroke: '#000000', strokeThickness: 3,
-    }).setOrigin(0.5).setDepth(102).setInteractive({ useHandCursor: true });
-    objects.push(closeBtn);
-
-    closeBtn.on('pointerover', () => closeBtn.setColor('#ffffff'));
-    closeBtn.on('pointerout',  () => closeBtn.setColor('#4ecdc4'));
-    closeBtn.on('pointerdown', closeAll);
-    dim.on('pointerdown', closeAll);
-  }
-
-  private showLeaderboardModal(entries: LeaderboardEntry[]): void {
-    const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
-    const closeAll = () => objects.forEach(o => o.destroy());
-    const objects: Phaser.GameObjects.GameObject[] = [];
-
-    const dim = this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.78)
-      .setDepth(100).setInteractive();
-    objects.push(dim);
-
-    const panelH = Math.max(280, entries.length * 28 + 110);
-    const panel = this.add.rectangle(cx, cy, 500, panelH, 0x0f1629)
-      .setStrokeStyle(2, 0x4ecdc4).setDepth(101);
-    objects.push(panel);
-
-    const title = this.add.text(cx, cy - panelH / 2 + 28, t('menu.leaderboard'), {
-      fontSize: '26px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
-    }).setOrigin(0.5).setDepth(102);
-    objects.push(title);
-
-    if (entries.length === 0) {
-      const empty = this.add.text(cx, cy, t('menu.leaderboard_unavailable'), {
-        fontSize: '16px', fontFamily: 'Arial', color: '#666666', align: 'center',
-      }).setOrigin(0.5).setDepth(102);
-      objects.push(empty);
-    } else {
-      const startY = cy - panelH / 2 + 70;
-      entries.forEach((entry, i) => {
-        const y = startY + i * 28;
-        const rankColor = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : '#aaaaaa';
-        const row = this.add.text(cx, y,
-          `${String(entry.rank).padEnd(4)} ${entry.name.substring(0, 20).padEnd(22)} ${entry.score}`,
-          { fontSize: '14px', fontFamily: 'monospace', color: rankColor },
-        ).setOrigin(0.5).setDepth(102);
-        objects.push(row);
-      });
-    }
-
-    const closeBtn = this.add.text(cx, cy + panelH / 2 - 28, t('settings.close'), {
-      fontSize: '20px', fontFamily: 'Arial Black, Arial', color: '#4ecdc4',
     }).setOrigin(0.5).setDepth(102).setInteractive({ useHandCursor: true });
     objects.push(closeBtn);
 
