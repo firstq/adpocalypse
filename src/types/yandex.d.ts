@@ -9,6 +9,12 @@ interface YaGamesFactory {
 }
 
 interface YandexGamesSDKInstance {
+  environment?: {
+    i18n?: {
+      lang?: string;
+      tld?: string;
+    };
+  };
   features: {
     LoadingAPI?: { ready(): void };
   };

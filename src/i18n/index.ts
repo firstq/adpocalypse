@@ -8,7 +8,7 @@ const TRANSLATIONS: Record<Language, Record<string, string>> = { ru, en };
 
 let currentLanguage: Language = 'ru';
 
-export function initI18n(): void {
+export function initI18n(sdkLang?: string): void {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'ru' || saved === 'en') {
@@ -16,7 +16,7 @@ export function initI18n(): void {
       return;
     }
   } catch { /* ignore */ }
-  currentLanguage = navigator.language.startsWith('ru') ? 'ru' : 'en';
+  currentLanguage = sdkLang === 'ru' ? 'ru' : 'en';
 }
 
 export function t(key: string, params?: Record<string, string | number>): string {

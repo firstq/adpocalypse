@@ -39,6 +39,8 @@ export interface IYandexSDK {
   notifyGameReady(): void;
   isYandex(): boolean;
   isLoggedIn(): boolean;
+  /** Returns the user's language from the SDK environment ('ru' or 'en'). */
+  getLang(): string;
   loadPlayerData(): Promise<Partial<SaveData> | null>;
   savePlayerData(data: SaveData): Promise<void>;
   showInterstitial(callbacks: InterstitialCallbacks): void;
@@ -55,9 +57,21 @@ export interface IYandexSDK {
 export class YandexSDKReal implements IYandexSDK {
   private ysdk: YandexGamesSDKInstance;
   private player: YandexPlayer | null = null;
+  private lang: string;
 
   constructor(ysdk: YandexGamesSDKInstance) {
     this.ysdk = ysdk;
+    const rawLang = (ysdk.environment?.i18n?.lang || '').slice(0, 2).toLowerCase();
+    this.lang = rawLang === 'ru' ? 'ru' : 'en';
+    console.log('[YandexSDKReal] Language from SDK env:', this.lang);
+  }
+
+  async init(): Promise<void> {
+    try {
+      this.player = await this.ysdk.getPlayer({ scopes: false });
+    } catch (err) {
+      console.warn('[YandexSDKReal] Eager getPlayer() failed — leaderboard/auth may not work:', err);
+    }
   }
 
   notifyGameReady(): void {
@@ -69,6 +83,8 @@ export class YandexSDKReal implements IYandexSDK {
   isLoggedIn(): boolean {
     return this.player !== null && this.player.getMode() !== 'lite';
   }
+
+  getLang(): string { return this.lang; }
 
   private async getOrFetchPlayer(): Promise<YandexPlayer> {
     if (!this.player) {
@@ -161,6 +177,7 @@ export class YandexSDKFallback implements IYandexSDK {
   notifyGameReady(): void { /* no-op outside Yandex */ }
   isYandex(): boolean { return false; }
   isLoggedIn(): boolean { return false; }
+  getLang(): string { return (navigator.language || 'ru').slice(0, 2).toLowerCase(); }
 
   async loadPlayerData(): Promise<null> {
     // Returning null tells SaveManager to use whatever is already in localStorage
@@ -211,8 +228,10 @@ export async function createYandexSDK(): Promise<IYandexSDK> {
 
   try {
     const ysdk = await YaGames.init();
-    console.log('[YandexSDK] Initialized successfully');
-    return new YandexSDKReal(ysdk);
+    const real = new YandexSDKReal(ysdk);
+    await real.init();
+    console.log('[YandexSDK] Initialized successfully. Logged in:', real.isLoggedIn(), 'Lang:', real.getLang());
+    return real;
   } catch (err) {
     console.error('[YandexSDK] Init failed — using fallback:', err);
     return new YandexSDKFallback();
