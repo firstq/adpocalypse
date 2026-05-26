@@ -26,7 +26,16 @@ interface YandexGamesSDKInstance {
   auth: {
     openAuthDialog(): Promise<void>;
   };
-  getLeaderboards(): Promise<YandexLeaderboards>;
+  leaderboards: {
+    setScore(name: string, score: number, extraData?: string): Promise<void>;
+    getEntries(name: string, params?: {
+      includeUser?: boolean;
+      quantityAround?: number;
+      quantityTop?: number;
+    }): Promise<YandexLeaderboardResult>;
+    getPlayerEntry(name: string): Promise<YandexLeaderboardEntry>;
+    getDescription(name: string): Promise<unknown>;
+  };
 }
 
 interface YandexFullscreenCallbacks {
@@ -46,8 +55,7 @@ interface YandexRewardedCallbacks {
 interface YandexPlayer {
   getID(): string;
   getName(): string;
-  /** Returns 'lite' when the player is not authenticated. */
-  getMode(): string;
+  isAuthorized(): boolean;
   getData(keys?: string[]): Promise<Record<string, unknown>>;
   setData(data: Record<string, unknown>, flush?: boolean): Promise<void>;
 }

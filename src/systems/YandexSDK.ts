@@ -81,7 +81,7 @@ export class YandexSDKReal implements IYandexSDK {
   isYandex(): boolean { return true; }
 
   isLoggedIn(): boolean {
-    return this.player !== null && this.player.getMode() !== 'lite';
+    return this.player !== null && this.player.isAuthorized();
   }
 
   getLang(): string { return this.lang; }
@@ -136,8 +136,7 @@ export class YandexSDKReal implements IYandexSDK {
 
   async submitLeaderboardScore(leaderboardName: string, score: number): Promise<void> {
     try {
-      const lb = await this.ysdk.getLeaderboards();
-      await lb.setLeaderboardScore(leaderboardName, score);
+      await this.ysdk.leaderboards.setScore(leaderboardName, score);
     } catch (err) {
       console.warn('[YandexSDKReal] submitLeaderboardScore failed:', err);
     }
@@ -145,8 +144,10 @@ export class YandexSDKReal implements IYandexSDK {
 
   async getLeaderboardEntries(leaderboardName: string, count: number): Promise<LeaderboardEntry[]> {
     try {
-      const lb = await this.ysdk.getLeaderboards();
-      const result = await lb.getLeaderboardEntries(leaderboardName, { quantityTop: count, includeUser: true });
+      const result = await this.ysdk.leaderboards.getEntries(leaderboardName, {
+        quantityTop: count,
+        includeUser: true,
+      });
       return result.entries.map(e => ({
         rank:  e.rank,
         score: e.score,

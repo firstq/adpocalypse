@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config';
+import { GAME_WIDTH, GAME_HEIGHT, LEADERBOARD_NAME } from '../config';
 import { sdkInstance } from '../systems/sdk';
 import { LeaderboardEntry } from '../systems/YandexSDK';
 import { t } from '../i18n';
@@ -71,7 +71,7 @@ export class LeaderboardScene extends Phaser.Scene {
       return;
     }
 
-    const entries = await sdkInstance.getLeaderboardEntries('best_wave', 10);
+    const entries = await sdkInstance.getLeaderboardEntries(LEADERBOARD_NAME, 10);
     this.clearContent();
 
     if (entries.length === 0) {

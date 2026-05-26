@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT } from '../config';
+import { GAME_WIDTH, GAME_HEIGHT, LEADERBOARD_NAME } from '../config';
 import { t } from '../i18n';
 import { Biome1Background } from './background/Biome1Background';
 import { Player } from '../entities/Player';
@@ -684,7 +684,7 @@ export class GameScene extends Phaser.Scene {
 
     // Submit leaderboard score on new record
     if (isNewRecord) {
-      void sdkInstance.submitLeaderboardScore('best_wave', reached);
+      void sdkInstance.submitLeaderboardScore(LEADERBOARD_NAME, reached);
     }
 
     this.gameOverOverlay = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0).setDepth(100);
@@ -929,7 +929,7 @@ export class GameScene extends Phaser.Scene {
       void sdkInstance.openAuthDialog().then(() => {
         if (sdkInstance.isLoggedIn()) {
           signInBtn.setText(t('gameover.signed_in'));
-          void sdkInstance.submitLeaderboardScore('best_wave', reached);
+          void sdkInstance.submitLeaderboardScore(LEADERBOARD_NAME, reached);
         } else {
           signInBtn.setInteractive({ useHandCursor: true }).setText(t('gameover.sign_in'));
         }
